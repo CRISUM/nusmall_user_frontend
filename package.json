@@ -14,6 +14,7 @@
     "nusmall_user_frontend": "file:",
     "pinia": "^2.2.4",
     "vue": "^3.2.13",
+    "vue-router": "^4.4.5",
     "vuestic-ui": "^1.10.2"
   },
   "devDependencies": {
@@ -21,9 +22,12 @@
     "@babel/eslint-parser": "^7.12.16",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-plugin-typescript": "^5.0.8",
     "@vue/cli-service": "~5.0.0",
+    "@vue/runtime-core": "^3.5.11",
     "eslint": "^7.32.0",
-    "eslint-plugin-vue": "^8.0.3"
+    "eslint-plugin-vue": "^8.0.3",
+    "typescript": "^5.6.2"
   },
   "eslintConfig": {
     "root": true,
