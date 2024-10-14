@@ -1,8 +1,9 @@
 // src/utils/mockService.js
 
 const STORAGE_KEY = 'vue_user_management';
+const CART_STORAGE_KEY = 'vue_cart_management';
 
-// 初始化本地存储
+// 初始化本地存储，包括用户数据和购物车数据
 const initStorage = () => {
   if (!localStorage.getItem(STORAGE_KEY)) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -12,6 +13,25 @@ const initStorage = () => {
       ]
     }));
   }
+
+  if (!localStorage.getItem(CART_STORAGE_KEY)) {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify({
+      cartItems: [
+        { cartItemId: 1, goodsName: 'Product A', goodsCount: 2, sellingPrice: 50, goodsCoverImg: '/path/to/img1' },
+        { cartItemId: 2, goodsName: 'Product B', goodsCount: 1, sellingPrice: 100, goodsCoverImg: '/path/to/img2' }
+      ]
+    }));
+  }
+};
+
+// 获取购物车存储的数据
+const getCartData = () => {
+  return JSON.parse(localStorage.getItem(CART_STORAGE_KEY));
+};
+
+// 更新购物车存储的数据
+const updateCartData = (data) => {
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(data));
 };
 
 // 获取存储的数据
@@ -110,6 +130,55 @@ export const deleteUser = async (id) => {
   } else {
     throw new Error('User not found');
   }
+};
+
+/**
+ * Cart 模拟服务
+ */
+
+// 获取购物车
+export const getCart = async () => {
+  await delay(300);
+  return [
+    { cartItemId: 1, goodsName: 'Product A', goodsCount: 2, sellingPrice: 50, goodsCoverImg: 'img1' },
+    { cartItemId: 2, goodsName: 'Product B', goodsCount: 1, sellingPrice: 100, goodsCoverImg: 'img2' }
+  ];
+};
+
+// 添加商品到购物车
+export const addToCart = async (newItem) => {
+  await delay(300);
+  const data = getCartData();
+  const existingItem = data.cartItems.find(item => item.cartItemId === newItem.cartItemId);
+  if (existingItem) {
+    existingItem.goodsCount += newItem.goodsCount;
+  } else {
+    data.cartItems.push(newItem);
+  }
+  updateCartData(data);
+  return { message: 'Item added to cart' };
+};
+
+// 修改购物车商品数量
+export const modifyCart = async ({ cartItemId, goodsCount }) => {
+  const data = getCartData();
+  const item = data.cartItems.find(item => item.cartItemId === cartItemId);
+  if (item) {
+    item.goodsCount = goodsCount;
+    updateCartData(data);
+    return item;
+  } else {
+    throw new Error('Item not found');
+  }
+};
+
+// 删除购物车商品
+export const deleteCartItem = async (cartItemId) => {
+  await delay(300);
+  const data = getCartData();
+  data.cartItems = data.cartItems.filter(item => item.cartItemId !== cartItemId);
+  updateCartData(data);
+  return { message: 'Item deleted successfully' };
 };
 
 // 初始化存储

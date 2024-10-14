@@ -6,6 +6,7 @@ import User from '@/views/User.vue'
 import UserList from '@/views/UserList.vue'
 import UserForm from '@/views/UserForm.vue'
 import Home from '@/views/Home.vue'
+import Cart from '@/views/cart.vue'
 // import ProductManagement from '@/views/ProductManagement.vue'
 // import ShoppingCart from '@/views/ShoppingCart.vue'
 
@@ -55,12 +56,12 @@ const routes = [
   //   component: ProductManagement,
   //   meta: { requiresAuth: true, requiresAdmin: true }
   // },
-  // {
-  //   path: '/api/cart',
-  //   name: 'ShoppingCart',
-  //   component: ShoppingCart,
-  //   meta: { requiresAuth: true }
-  // }
+   {
+     path: '/api/cart',
+     name: 'Cart',
+     component: Cart,
+     meta: { requiresAuth: true }
+   }
 ]
 
 const router = createRouter({
