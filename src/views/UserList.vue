@@ -1,6 +1,6 @@
 <template>
   <div class="user-list">
-    <simple-header title="User List" />
+    <h1>User List</h1>
     <table>
       <thead>
         <tr>
@@ -24,14 +24,13 @@
         </tr>
       </tbody>
     </table>
-    <button @click="router.push('/api/users/new')">Create New User</button>
+    <button @click="createNewUser" class="create-button">Create New User</button>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
-import SimpleHeader from '@/components/SimpleHeader.vue'
 import { getAllUsers, deleteUser as deleteUserApi } from '@/service/user'
 
 const router = useRouter()
@@ -61,24 +60,49 @@ const deleteUser = async (userId) => {
     }
   }
 }
+
+const createNewUser = () => {
+  router.push('/api/users/new')
+}
 </script>
 
-
-  <style scoped>
-  .user-list {
-    padding: 20px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-  button {
-    margin-right: 5px;
-    cursor: pointer;
-  }
-  </style>
+<style scoped>
+.user-list {
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+h1 {
+  margin-bottom: 20px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+}
+th {
+  background-color: #f2f2f2;
+}
+button {
+  margin-right: 5px;
+  cursor: pointer;
+  padding: 5px 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 3px;
+}
+button:hover {
+  opacity: 0.8;
+}
+.create-button {
+  background-color: #008CBA;
+  padding: 10px 15px;
+  font-size: 16px;
+}
+</style>

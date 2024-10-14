@@ -1,6 +1,6 @@
 <template>
   <div class="user-form">
-    <simple-header :title="isEditing ? 'Edit User' : 'Create User'" />
+    <h1>{{ isEditing ? 'Edit User' : 'Create User' }}</h1>
     <form @submit.prevent="onSubmit">
       <input v-model="user.username" type="text" placeholder="Username" required>
       <input v-model="user.email" type="email" placeholder="Email" required>
@@ -18,7 +18,6 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import SimpleHeader from '@/components/SimpleHeader.vue'
 import { createUser, getUserById, updateUser } from '@/service/user'
 
 const router = useRouter()
@@ -62,24 +61,35 @@ const onSubmit = async () => {
 }
 </script>
 
-  <style scoped>
-  .user-form {
-    padding: 20px;
-  }
-  form {
-    display: flex;
-    flex-direction: column;
-  }
-  input, select {
-    margin-bottom: 10px;
-    padding: 10px;
-  }
-  button {
-    background-color: #1baeae;
-    color: white;
-    padding: 10px;
-    border: none;
-    cursor: pointer;
-  }
-  </style>
-  
+<style scoped>
+.user-form {
+  padding: 20px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+h1 {
+  margin-bottom: 20px;
+}
+form {
+  display: flex;
+  flex-direction: column;
+}
+input, select {
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+button:hover {
+  opacity: 0.8;
+}
+</style>

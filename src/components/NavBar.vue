@@ -1,33 +1,39 @@
 <template>
-  <nav v-if="isLoggedIn" class="navbar">
+  <nav class="navbar">
     <ul class="nav-list">
       <li><router-link to="/api/home">Home</router-link></li>
       <li v-if="isAdmin"><router-link to="/api/users">User Management</router-link></li>
       <li v-if="isAdmin"><router-link to="/api/products">Product Management</router-link></li>
       <li><router-link to="/api/cart">Shopping Cart</router-link></li>
       <li><router-link to="/api/user">My Profile</router-link></li>
+      <li><button @click="logout">Logout</button></li>
     </ul>
   </nav>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 
-const isLoggedIn = ref(false)
-const isAdmin = ref(false)
-const router = useRouter()
+const router = useRouter();
+const route = useRoute();
+const isAdmin = ref(false);
 
-const checkAuth = () => {
-  const token = localStorage.getItem('token')
-  const user = JSON.parse(localStorage.getItem('user'))
-  isLoggedIn.value = !!token
-  isAdmin.value = user && user.role === 'ADMIN'
-}
+const checkUserRole = () => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  isAdmin.value = user && user.role === 'ADMIN';
+};
 
-onMounted(checkAuth)
+onMounted(checkUserRole);
 
-watch(() => router.currentRoute.value, checkAuth)
+// 监听路由变化，重新检查用户角色
+watch(() => route.path, checkUserRole);
+
+const logout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  router.push('/api/login');
+};
 </script>
 
 <style scoped>
@@ -51,6 +57,18 @@ watch(() => router.currentRoute.value, checkAuth)
 }
 
 .nav-list li a:hover {
+  color: #007bff;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  color: #333;
+}
+
+button:hover {
   color: #007bff;
 }
 </style>

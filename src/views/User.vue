@@ -1,49 +1,30 @@
 <template>
-    <div class="user-box">
-      <simple-header :title="'My Profile'"></simple-header>
+    <div class="user-profile">
+      <h1>My Profile</h1>
       <div v-if="!loading" class="user-info">
         <div class="info">
           <img :src="avatarSrc" alt="User Avatar"/>
           <div class="user-desc">
-            <span>Username: {{ user.username }}</span>
-            <span>Email: {{ user.email }}</span>
-            <span>Role: {{ user.role }}</span>
+            <p>Username: {{ user.username }}</p>
+            <p>Email: {{ user.email }}</p>
+            <p>Role: {{ user.role }}</p>
           </div>
         </div>
       </div>
-      <ul class="user-list">
-        <li v-if="user.role === 'ADMIN'" @click="goTo('/users')">
-          <span>User Management</span>
-          <span class="arrow">›</span>
-        </li>
-        <li @click="goTo('/orders')">
-          <span>My Orders</span>
-          <span class="arrow">›</span>
-        </li>
-        <li @click="goTo('/account-settings')">
-          <span>Account Settings</span>
-          <span class="arrow">›</span>
-        </li>
-        <li @click="goTo('/address-management')">
-          <span>Address Management</span>
-          <span class="arrow">›</span>
-        </li>
-        <li @click="goTo('/about')">
-          <span>About Us</span>
-          <span class="arrow">›</span>
-        </li>
+      <ul class="user-actions">
+        <li v-if="user.role === 'ADMIN'" @click="goTo('/api/users')">User Management</li>
+        <li @click="goTo('/api/orders')">My Orders</li>
+        <li @click="goTo('/api/account-settings')">Account Settings</li>
+        <li @click="goTo('/api/address-management')">Address Management</li>
       </ul>
-      <button class="logout-button" @click="logout">Logout</button>
     </div>
   </template>
   
   <script setup>
   import { ref, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
-  import SimpleHeader from '@/components/SimpleHeader.vue'
   import { getUserById } from '@/service/user'
   import avatarImage from '@/assets/pic/useravatar.png'
-
   
   const router = useRouter()
   const user = ref({})
@@ -69,25 +50,20 @@
   const goTo = (route) => {
     router.push(route)
   }
-  
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    router.push('/login')
-  }
   </script>
-
+  
   <style scoped>
-  .user-box {
+  .user-profile {
     padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
   }
   
   .user-info {
-    background-color: #1baeae;
+    background-color: #f0f0f0;
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 20px;
-    color: white;
   }
   
   .info {
@@ -96,50 +72,28 @@
   }
   
   .info img {
-    width: 60px;
-    height: 60px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     margin-right: 20px;
   }
   
-  .user-desc {
-    display: flex;
-    flex-direction: column;
+  .user-desc p {
+    margin: 5px 0;
   }
   
-  .user-desc span {
-    margin-bottom: 5px;
-  }
-  
-  .user-list {
+  .user-actions {
     list-style: none;
     padding: 0;
   }
   
-  .user-list li {
-    display: flex;
-    justify-content: space-between;
-    padding: 15px 0;
+  .user-actions li {
+    padding: 10px 0;
     border-bottom: 1px solid #eee;
     cursor: pointer;
   }
   
-  .arrow {
-    color: #999;
-  }
-  
-  .logout-button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 20px;
-    background-color: #ff4d4f;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
-  .logout-button:hover {
-    background-color: #ff7875;
+  .user-actions li:hover {
+    background-color: #f0f0f0;
   }
   </style>
