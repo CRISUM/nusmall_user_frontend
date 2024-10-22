@@ -34,3 +34,6 @@ pnpm-debug.log*
 /dist/
 /nbdist/
 /.nb-gradle/
+
+# Backend References #
+/backend_ref

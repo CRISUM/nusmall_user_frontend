@@ -1,17 +1,25 @@
 <template>
   <div id="app">
-    <Navbar />
+    <!-- 使用 v-show 根据路由来控制 Navbar 的显示 -->
+    <Navbar v-show="showNavbar" />
     <router-view></router-view>
     <ErrorMessage ref="errorMessage" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, provide } from 'vue';
+import { ref, onMounted, provide, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import Navbar from '@/components/Navbar.vue';
 import ErrorMessage from '@/components/ErrorMessage.vue';
 
 const errorMessage = ref(null);
+const route = useRoute();
+
+const showNavbar = computed(() => {
+  const hideNavbarRoutes = ['/api/login'];
+  return !hideNavbarRoutes.includes(route.path);
+});
 
 onMounted(() => {
   if (errorMessage.value) {

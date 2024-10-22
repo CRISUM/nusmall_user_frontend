@@ -2,15 +2,36 @@
   <div class="user-form">
     <h1>{{ isEditing ? 'Edit User' : 'Create User' }}</h1>
     <form @submit.prevent="onSubmit">
-      <input v-model="user.username" type="text" placeholder="Username" required>
-      <input v-model="user.email" type="email" placeholder="Email" required>
-      <input v-model="user.password" type="password" placeholder="Password" :required="!isEditing">
-      <select v-model="user.role" required>
-        <option value="CUSTOMER">Customer</option>
-        <option value="SELLER">Seller</option>
-        <option value="ADMIN">Admin</option>
-      </select>
-      <button type="submit">{{ isEditing ? 'Update' : 'Create' }}</button>
+      <div class="form-group">
+        <label>Username</label>
+        <input v-model="user.username" type="text" placeholder="Username" required>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input v-model="user.email" type="email" placeholder="Email" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input v-model="user.password" type="password" 
+               placeholder="Password" 
+               :required="!isEditing">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select v-model="user.role" required>
+          <option value="CUSTOMER">Customer</option>
+          <option value="SELLER">Seller</option>
+          <option value="ADMIN">Admin</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="secondary-btn" @click="goBack">
+          Cancel
+        </button>
+        <button type="submit" class="primary-btn">
+          {{ isEditing ? 'Update' : 'Create' }}
+        </button>
+      </div>
     </form>
   </div>
 </template>
@@ -31,27 +52,41 @@ const user = ref({
   role: 'CUSTOMER'
 })
 
-const isEditing = computed(() => route.params.id !== 'new')
+const isEditing = computed(() => route.name === 'EditUser')
 
-onMounted(async () => {
-  if (isEditing.value) {
-    try {
-      user.value = await getUserById(route.params.id)
-      user.value.password = '' // Clear password for security
-    } catch (error) {
-      showMessage('Failed to fetch user data', 'error')
-      router.push('/api/users')
-    }
+// Load user data if editing
+const loadUserData = async () => {
+  if (!isEditing.value) return
+  
+  try {
+    const userId = parseInt(route.params.id)
+    const userData = await getUserById(userId)
+    // remove password field from user object
+    const { password, ...userWithoutPassword } = userData
+    user.value = { ...userWithoutPassword, password: '' }
+  } catch (error) {
+    showMessage(`Failed to load user: ${error.message}`, 'error')
+    router.push('/api/users')
   }
-})
+}
+
+const goBack = () => {
+  router.push('/api/users')
+}
 
 const onSubmit = async () => {
   try {
+    // remove password field if not editing
+    const userData = { ...user.value }
+    if (isEditing.value && !userData.password) {
+      delete userData.password
+    }
+
     if (isEditing.value) {
-      await updateUser(route.params.id, user.value)
+      await updateUser(parseInt(route.params.id), userData)
       showMessage('User updated successfully', 'success')
     } else {
-      await createUser(user.value)
+      await createUser(userData)
       showMessage('User created successfully', 'success')
     }
     router.push('/api/users')
@@ -59,37 +94,67 @@ const onSubmit = async () => {
     showMessage(error.message || 'An error occurred', 'error')
   }
 }
+
+onMounted(loadUserData)
 </script>
 
 <style scoped>
 .user-form {
-  padding: 20px;
-  max-width: 400px;
+  max-width: 500px;
   margin: 0 auto;
+  padding: 20px;
 }
-h1 {
+
+.form-group {
   margin-bottom: 20px;
 }
-form {
-  display: flex;
-  flex-direction: column;
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
 }
-input, select {
-  margin-bottom: 15px;
-  padding: 10px;
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
+  font-size: 1em;
 }
-button {
-  background-color: #4CAF50;
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.primary-btn {
+  background-color: #1baeae;
   color: white;
-  padding: 12px;
+  padding: 8px 16px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
 }
-button:hover {
-  opacity: 0.8;
+
+.secondary-btn {
+  background-color: #fff;
+  color: #666;
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.primary-btn:hover {
+  background-color: #158f8f;
+}
+
+.secondary-btn:hover {
+  background-color: #f5f5f5;
 }
 </style>

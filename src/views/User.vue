@@ -11,8 +11,17 @@
           </div>
         </div>
       </div>
-      <ul class="user-actions">
-        <li v-if="user.role === 'ADMIN'" @click="goTo('/api/users')">User Management</li>
+        <ul class="user-actions">
+        <!-- Add new actions based on role -->
+        <li v-if="user.role === 'ADMIN'" @click="goTo('/api/users')">
+          User Management
+        </li>
+        <li v-if="['SELLER', 'ADMIN'].includes(user.role)" @click="goTo('/inventory')">
+          Inventory Management
+        </li>
+        <li v-if="user.role === 'SELLER'" @click="goTo('/products?seller=true')">
+          My Products
+        </li>
         <li @click="goTo('/api/orders')">My Orders</li>
         <li @click="goTo('/api/account-settings')">Account Settings</li>
         <li @click="goTo('/api/address-management')">Address Management</li>

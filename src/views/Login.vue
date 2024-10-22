@@ -1,6 +1,6 @@
 <template>
   <div class="login">
-    <simple-header :title="state.type === 'login' ? 'Login' : 'Register'" :back="'/'" />
+    <simple-header :name="state.type === 'login' ? 'Login' : 'Register'" :back="'/'" />
     <img class="logo" src="/logo.png" alt="Logo">
     <div v-if="state.type === 'login'" class="login-body login">
       <form @submit.prevent="onSubmit">

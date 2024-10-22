@@ -1589,11 +1589,14 @@ snapshots:
   'newbee-mall-vue@file:':
     dependencies:
       axios: 1.7.7
+      connect-history-api-fallback: 2.0.0
+      express: 4.21.1
       vue: 3.5.12
       vue-router: 4.4.5(vue@3.5.12)
       vuex: 4.1.0(vue@3.5.12)
     transitivePeerDependencies:
       - debug
+      - supports-color
       - typescript
 
   node-releases@2.0.18: {}
