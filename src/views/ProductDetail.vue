@@ -1,156 +1,156 @@
 <!-- src/views/ProductDetail.vue -->
 <template>
-    <div class="product-detail">
-      <!-- Loading State -->
-      <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading product details...</p>
-      </div>
-  
-      <!-- Error State -->
-      <div v-if="error" class="error-state">
-        {{ error }}
-        <button @click="loadProduct" class="retry-btn">Retry</button>
-      </div>
-  
-      <!-- Product Content -->
-      <div v-if="product && !loading" class="product-container">
-        <!-- Left Section - Product Images -->
-        <div class="product-images">
-          <div class="main-image">
-            <img :src="product.imageUrl" :alt="product.name">
-          </div>
-          <div v-if="product.productImages?.length" class="image-thumbnails">
-            <div 
-              v-for="image in product.productImages" 
-              :key="image.imageUrl"
-              class="thumbnail"
-              @click="product.imageUrl = image.imageUrl"
-            >
-              <img :src="image.imageUrl" :alt="product.name">
-            </div>
-          </div>
+  <div class="product-detail">
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading product details...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-if="error" class="error-state">
+      {{ error }}
+      <button @click="loadProduct" class="retry-btn">Retry</button>
+    </div>
+
+    <!-- Product Content -->
+    <div v-if="product && !loading" class="product-container">
+      <!-- Left Section - Product Images -->
+      <div class="product-images">
+        <div class="main-image">
+          <img :src="product.imageUrl" :alt="product.name">
         </div>
-  
-        <!-- Right Section - Product Info -->
-        <div class="product-info">
-          <div class="product-header">
-            <h1>{{ product.name }}</h1>
-            <div class="category">
-              Category: 
-              <router-link :to="`/api/products?category=${product.categoryId}`">
-                {{ categoryName }}
-              </router-link>
-            </div>
-          </div>
-  
-          <div class="price-section">
-            <div class="current-price">¥{{ product.price.toFixed(2) }}</div>
-          </div>
-  
-          <div class="stock-section">
-            <StockLevel 
-              :productId="product.productId"
-              :showCount="true"
-              class="stock-indicator"
-            />
-          </div>
-  
-          <div class="description-section">
-            <h3>Product Description</h3>
-            <p>{{ product.description }}</p>
-          </div>
-  
-          <!-- Specifications -->
-          <div v-if="product.specifications" class="specifications">
-            <h3>Specifications</h3>
-            <ul>
-              <li v-for="(value, key) in product.specifications" :key="key">
-                <span class="spec-label">{{ formatSpecKey(key) }}:</span>
-                <span class="spec-value">{{ value }}</span>
-              </li>
-            </ul>
-          </div>
-  
-          <!-- Add to Cart Section (Only for CUSTOMER role) -->
-          <div v-if="userRole === 'CUSTOMER'" class="cart-actions">
-            <div class="quantity-control">
-              <button 
-                @click="decreaseQuantity" 
-                :disabled="quantity <= 1 || !product.availableStock"
-              >-</button>
-              <input 
-                type="number" 
-                v-model.number="quantity"
-                min="1"
-                :max="product.availableStock"
-                :disabled="!product.availableStock"
-              >
-              <button 
-                @click="increaseQuantity"
-                :disabled="quantity >= product.availableStock || !product.availableStock"
-              >+</button>
-            </div>
-  
-            <button 
-              @click="handleAddToCart"
-              class="add-to-cart-btn"
-              :disabled="!product?.availableStock"
-            >
-              {{ product?.availableStock ? 'Add to Cart' : 'Out of Stock' }}
-            </button>
-          </div>
-  
-          <!-- Seller Info (if available) -->
-          <div v-if="product.createUser" class="seller-info">
-            <h3>Seller Information</h3>
-            <p>Sold by: {{ product.createUser }}</p>
-            <p>Listed on: {{ formatDate(product.createDatetime) }}</p>
-          </div>
-        </div>
-      </div>
-  
-      <!-- Related Products -->
-      <div v-if="relatedProducts.length" class="related-products-section">
-        <h2>Related Products</h2>
-        <div class="related-products-grid">
+        <div v-if="product.productImages?.length" class="image-thumbnails">
           <div 
-            v-for="relatedProduct in relatedProducts" 
-            :key="relatedProduct.productId"
-            class="related-product-card"
-            @click="navigateToProduct(relatedProduct.productId)"
+            v-for="image in product.productImages" 
+            :key="image.imageUrl"
+            class="thumbnail"
+            @click="product.imageUrl = image.imageUrl"
           >
-            <img :src="relatedProduct.imageUrl" :alt="relatedProduct.name">
-            <div class="related-product-info">
-              <h3>{{ relatedProduct.name }}</h3>
-              <p class="price">¥{{ relatedProduct.price.toFixed(2) }}</p>
-            </div>
+            <img :src="image.imageUrl" :alt="product.name">
           </div>
         </div>
       </div>
-  
-      <!-- Add to Cart Success Modal -->
-      <div v-if="showSuccessModal" class="modal">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>Added to Cart</h3>
-            <button @click="showSuccessModal = false" class="close-btn">&times;</button>
+
+      <!-- Right Section - Product Info -->
+      <div class="product-info">
+        <div class="product-header">
+          <h1>{{ product.name }}</h1>
+          <div class="category">
+            Category: 
+            <router-link :to="`/api/products?category=${product.categoryId}`">
+              {{ categoryName }}
+            </router-link>
           </div>
-          <div class="modal-body">
-            <p>Product has been added to your cart successfully!</p>
-            <div class="modal-actions">
-              <button @click="continueShoppingHandler" class="secondary-btn">
-                Continue Shopping
-              </button>
-              <button @click="goToCart" class="primary-btn">
-                Go to Cart
-              </button>
-            </div>
+        </div>
+
+        <div class="price-section">
+          <div class="current-price">¥{{ product.price.toFixed(2) }}</div>
+        </div>
+
+        <div class="stock-section">
+          <StockLevel 
+            :productId="product.productId"
+            :showCount="true"
+            class="stock-indicator"
+          />
+        </div>
+
+        <div class="description-section">
+          <h3>Product Description</h3>
+          <p>{{ product.description }}</p>
+        </div>
+
+        <!-- Specifications -->
+        <div v-if="product?.specifications" class="specifications">
+          <h3>Specifications</h3>
+          <ul>
+            <li v-for="spec in formattedSpecifications" :key="spec.label">
+              <span class="spec-label">{{ spec.label }}:</span>
+              <span class="spec-value">{{ spec.value }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Add to Cart Section (Only for CUSTOMER role) -->
+        <div v-if="userRole === 'CUSTOMER'" class="cart-actions">
+          <div class="quantity-control">
+            <button 
+              @click="decreaseQuantity" 
+              :disabled="quantity <= 1 || !product.availableStock"
+            >-</button>
+            <input 
+              type="number" 
+              v-model.number="quantity"
+              min="1"
+              :max="product.availableStock"
+              :disabled="!product.availableStock"
+            >
+            <button 
+              @click="increaseQuantity"
+              :disabled="quantity >= product.availableStock || !product.availableStock"
+            >+</button>
+          </div>
+
+          <button 
+            @click="handleAddToCart"
+            class="add-to-cart-btn"
+            :disabled="!product?.availableStock"
+          >
+            {{ product?.availableStock ? 'Add to Cart' : 'Out of Stock' }}
+          </button>
+        </div>
+
+        <!-- Seller Info (if available) -->
+        <div v-if="product.createUser" class="seller-info">
+          <h3>Seller Information</h3>
+          <p>Sold by: {{ product.createUser }}</p>
+          <p>Listed on: {{ formatDate(product.createDatetime) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Related Products -->
+    <div v-if="relatedProducts.length" class="related-products-section">
+      <h2>Related Products</h2>
+      <div class="related-products-grid">
+        <div 
+          v-for="relatedProduct in relatedProducts" 
+          :key="relatedProduct.productId"
+          class="related-product-card"
+          @click="navigateToProduct(relatedProduct.productId)"
+        >
+          <img :src="relatedProduct.imageUrl" :alt="relatedProduct.name">
+          <div class="related-product-info">
+            <h3>{{ relatedProduct.name }}</h3>
+            <p class="price">¥{{ relatedProduct.price.toFixed(2) }}</p>
           </div>
         </div>
       </div>
     </div>
-  </template>
+
+    <!-- Add to Cart Success Modal -->
+    <div v-if="showSuccessModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Added to Cart</h3>
+          <button @click="showSuccessModal = false" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>Product has been added to your cart successfully!</p>
+          <div class="modal-actions">
+            <button @click="continueShoppingHandler" class="secondary-btn">
+              Continue Shopping
+            </button>
+            <button @click="goToCart" class="primary-btn">
+              Go to Cart
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
   
   <script setup>
   import { ref, computed, onMounted, watch } from 'vue';
@@ -158,11 +158,11 @@
   import StockLevel from '@/components/StockLevel.vue';
   import { getProductById } from '@/service/product';
   import { getInventory, checkStock } from '@/service/inventory';
-  import { addToCart as addToCartService } from '@/service/cart';  // 重命名导入的函数
+  import { addToCart as addToCartService } from '@/service/cart';
+  import store from '@/store';
 
   const route = useRoute();
   const router = useRouter();
-  const store = useStore();
   const product = ref(null);
   const loading = ref(true);
   const quantity = ref(1);
@@ -176,7 +176,17 @@
     return user?.role || 'CUSTOMER';
   });
 
-  
+  const hasRelatedProducts = computed(() => {
+    return relatedProducts.value && relatedProducts.value.length > 0;
+  });
+
+  const formatSpecKey = (key) => {
+    return key
+      .split(/(?=[A-Z])/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+    
   const loadProductDetails = async () => {
     try {
       loading.value = true;
@@ -230,6 +240,15 @@
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
+
+  const formattedSpecifications = computed(() => {
+    if (!product.value?.specifications) return [];
+    
+    return Object.entries(product.value.specifications).map(([key, value]) => ({
+      label: formatSpecKey(key),
+      value: formatValue(value)
+    }));
+  });
   
   const formatValue = (value) => {
     if (Array.isArray(value)) {
@@ -244,19 +263,44 @@
       error.value = null;
       const productId = parseInt(route.params.id);
       
+      if (!productId) {
+        throw new Error('Invalid product ID');
+      }
+
       const [productData, stock] = await Promise.all([
         getProductById(productId),
-        getInventory(null, productId)  // 使用正确的函数
+        getInventory(null, productId)
       ]);
-      
+
       if (!productData) {
         throw new Error('Product not found');
       }
-      
+
       product.value = {
         ...productData,
-        availableStock: stock
+        availableStock: stock || 0
       };
+
+      // 加载分类名称和相关产品
+      if (product.value.categoryId) {
+        try {
+          const response = await pageQuery({
+            page: 1,
+            pageSize: 4,
+            categoryId: product.value.categoryId
+          });
+          
+          if (response && response.records) {
+            relatedProducts.value = response.records.filter(
+              p => p.productId !== productId
+            );
+          }
+        } catch (err) {
+          console.error('Failed to load related products:', err);
+          relatedProducts.value = []; // 确保设置默认值
+        }
+      }
+
     } catch (err) {
       console.error('Failed to load product:', err);
       error.value = err.message;
@@ -264,6 +308,7 @@
       loading.value = false;
     }
   };
+
   
   const decreaseQuantity = () => {
     if (quantity.value > 1) {
@@ -276,7 +321,15 @@
       quantity.value++;
     }
   };
-  
+
+  const goToCart = () => {
+    router.push('/api/cart');
+  };
+
+  const continueShoppingHandler = () => {
+    router.push('/api/products');
+  };
+
   const addToCart = async () => {
     try {
       // 再次检查库存
@@ -310,38 +363,37 @@
     }
   };
 
-  const handleAddToCart = async () => {  // 重命名本地函数
+  const handleAddToCart = async () => {
     try {
-      // 再次检查库存
-      const stockAvailable = await checkStock(
-        product.value.productId,
-        quantity.value
-      );
-      
+      if (!product.value) return;
+
+      // 检查库存
+      const stockAvailable = await checkStock(product.value.productId, quantity.value);
       if (!stockAvailable) {
         throw new Error('Insufficient stock');
       }
 
-      // 构造购物车项数据
+      // 构造购物车项
       const cartItem = {
         productId: product.value.productId,
         quantity: quantity.value,
         price: product.value.price,
-        isSelected: true,
         name: product.value.name,
-        imageUrl: product.value.imageUrl
+        imageUrl: product.value.imageUrl,
+        isSelected: true
       };
 
-      await addToCartService(cartItem);  // 使用重命名后的导入函数
-      
-      // 重新加载商品信息以获取最新库存
-      await loadProduct();
+      await addToCartService(cartItem);
+      await store.dispatch('cart/fetchCartItems');
       
       showSuccessModal.value = true;
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
-      error.value = error.message || 'Failed to add to cart';
+    } catch (err) {
+      error.value = err.message || 'Failed to add to cart';
     }
+  };
+
+  const closeModal = () => {
+    showSuccessModal.value = false;
   };
   
   // 监听路由参数变化，重新加载商品信息
@@ -504,19 +556,58 @@
   transform: translateY(-2px);
 }
   
-  @media (max-width: 768px) {
-    .product-container {
-      grid-template-columns: 1fr;
-    }
-    
-    .cart-actions {
-      flex-direction: column;
-    }
-    
-    .add-to-cart-btn {
-      width: 100%;
-    }
+@media (max-width: 768px) {
+  .product-container {
+    grid-template-columns: 1fr;
   }
-
   
-  </style>
+  .cart-actions {
+    flex-direction: column;
+  }
+  
+  .add-to-cart-btn {
+    width: 100%;
+  }
+}
+
+.product-detail {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.specifications {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.specifications h3 {
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.specifications ul {
+  list-style: none;
+  padding: 0;
+}
+
+.specifications li {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.spec-label {
+  font-weight: 600;
+  min-width: 150px;
+  color: #666;
+}
+
+.spec-value {
+  color: #333;
+  flex: 1;
+}
+
+</style>

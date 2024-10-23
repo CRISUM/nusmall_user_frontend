@@ -76,24 +76,26 @@ const goBack = () => {
 
 const onSubmit = async () => {
   try {
-    // remove password field if not editing
-    const userData = { ...user.value }
-    if (isEditing.value && !userData.password) {
-      delete userData.password
-    }
+    const userData = {
+      ...user.value,
+      createUser: user.value.username || 'system',
+      updateUser: user.value.username || 'system',
+      createDatetime: new Date(),
+      updateDatetime: new Date()
+    };
 
     if (isEditing.value) {
-      await updateUser(parseInt(route.params.id), userData)
-      showMessage('User updated successfully', 'success')
+      await updateUser(route.params.id, userData);
+      showMessage('User updated successfully', 'success');
     } else {
-      await createUser(userData)
-      showMessage('User created successfully', 'success')
+      await createUser(userData);
+      showMessage('User created successfully', 'success');
     }
-    router.push('/api/users')
+    router.push('/api/users');
   } catch (error) {
-    showMessage(error.message || 'An error occurred', 'error')
+    showMessage(error.message || 'An error occurred', 'error');
   }
-}
+};
 
 onMounted(loadUserData)
 </script>

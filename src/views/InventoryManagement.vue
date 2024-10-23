@@ -11,11 +11,13 @@ import {
   checkStock, 
 } from '@/service/inventory';
 import { getAllProducts, getProductsByMerchant } from '@/service/product';
+import { useAuth } from '@/composables/useAuth';
 
 const router = useRouter();
 const store = useStore();
 const user = JSON.parse(localStorage.getItem('user'));
 const authToken = localStorage.getItem('token');
+const { userRole } = useAuth(); // 使用useAuth composable
 
 // State
 const products = ref([]);
@@ -64,24 +66,36 @@ const loadInventoryData = async () => {
   try {
     loading.value = true;
     error.value = null;
+    const token = localStorage.getItem('token');
 
-    // Get products based on user role
-    const productsData = user.role === 'SELLER' ? 
-      await getProductsByMerchant(authToken) :
+    // Get all products first
+    let productsData = userRole.value === 'SELLER' ? 
+      await getProductsByMerchant(token) :
       await getAllProducts();
 
-    // Get inventory for each product
-    const productsWithStock = await Promise.all(
-      productsData.map(async product => {
-        const stock = await getInventory(authToken, product.productId);
-        return {
-          ...product,
-          availableStock: stock
-        };
-      })
-    );
+    if (productsData && productsData.records) {
+      // Get inventory for each product
+      const inventoryPromises = productsData.records.map(async product => {
+        try {
+          const stock = await getInventory(token, product.productId || product.id);
+          return {
+            ...product,
+            productId: product.productId || product.id,
+            availableStock: Number(stock) || 0
+          };
+        } catch (err) {
+          console.error(`Failed to get inventory for product ${product.id}:`, err);
+          return {
+            ...product,
+            productId: product.productId || product.id,
+            availableStock: 0
+          };
+        }
+      });
 
-    products.value = productsWithStock;
+      const productsWithStock = await Promise.all(inventoryPromises);
+      products.value = productsWithStock;
+    }
   } catch (err) {
     error.value = err.message;
     console.error('Failed to load inventory:', err);
@@ -89,7 +103,6 @@ const loadInventoryData = async () => {
     loading.value = false;
   }
 };
-
 const openUpdateModal = async (product) => {
   try {
     selectedProduct.value = product;

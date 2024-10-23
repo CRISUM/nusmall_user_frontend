@@ -446,12 +446,15 @@ export const getAllProducts = async () => {
     records: products.map(product => ({
       ...product,
       productId: product.id,  // Ensure productId exists
+      name: product.name || 'Unnamed Product',
+      description: product.description || 'No description',
+      price: Number(product.price) || 0,
+      imageUrl: product.imageUrl || '/api/placeholder/400/320',
       availableStock: inventory.find(item => item.productId === product.id)?.availableStock || 0
     })),
     total: products.length
   };
 };
-
 export const getProductsByMerchant = async (authToken) => {
   await delay(300);
   const { products } = JSON.parse(localStorage.getItem(PRODUCT_STORAGE_KEY));

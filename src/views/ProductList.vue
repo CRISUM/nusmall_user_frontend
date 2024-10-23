@@ -341,14 +341,11 @@
   
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { addToCart as addToCartApi } from '@/service/cart'
 import { UserRoles } from '@/constants/authTypes'  
 import { useAuth } from '@/composables/useAuth'
 import StockLevel from '@/components/StockLevel.vue';
-
-
 import { 
   getAllProducts,
   getProductsByMerchant,
@@ -356,22 +353,29 @@ import {
   updateProduct as updateProductApi,
   deleteProduct as deleteProductApi,
   getInventory,
+  getProductById, 
   updateInventory,
   uploadImage,
-  checkStock
 } from '@/service/product'
-
+import { checkStock } from '@/service/inventory';
 import { permissionService } from '@/service/permission' 
 import { pageQuery } from '@/service/category';
 import { getCategoryName } from '@/utils/mockService';
+import { useStore } from 'vuex';
+import { addToCart as addToCartService } from '@/service/cart';
 
 // Auth
 const { userRole, isAdmin, isSeller } = useAuth()
 
 // Store
 const store = useStore()
+const route = useRoute();
+const router = useRouter();
 
 // State
+const relatedProducts = ref([]); // 初始化为空数组
+const categoryName = ref('');
+const showSuccessModal = ref(false);
 const products = ref([])
 const loading = ref(true)
 const showAddProduct = ref(false)
@@ -384,7 +388,6 @@ const productToDelete = ref(null)
 const showCartModal = ref(false)
 const selectedProduct = ref(null)
 const quantity = ref(1)
-const router = useRouter();
 const categories = ref([]);
 const selectedCategory = ref('');
 const total = ref(0);
@@ -406,7 +409,12 @@ const loadCategories = async () => {
   }
 };
 
+const hasRelatedProducts = computed(() => {
+  return relatedProducts.value && relatedProducts.value.length > 0;
+});
+
 const filteredProducts = computed(() => {
+  if (!products.value) return [];
   let result = [...products.value];
   
   if (searchQuery.value) {
@@ -642,26 +650,30 @@ const handleImageUpload = async (file) => {
 const loadProducts = async () => {
   try {
     loading.value = true;
+    const token = localStorage.getItem('token');
     let result;
 
-    const queryParams = {
-      page: currentPage.value,
-      pageSize: pageSize.value,
-      categoryId: selectedCategory.value || undefined,
-      name: searchQuery.value || undefined
-    };
-
-    if (isSeller.value) {
-      result = await pageQueryMerchant(authToken, queryParams);
+    if (userRole.value === 'SELLER') {
+      // For sellers, get their own products
+      result = await getProductsByMerchant(token);
     } else {
-      result = await pageQuery(queryParams);
+      // For others (admin/customer), get all products
+      result = await getAllProducts();
     }
     
-    products.value = result.records.map(product => ({
-      ...product,
-      productId: product.productId || product.id || 0  // Ensure productId exists
-    }));
-    total.value = result.total;
+    // Transform data to ensure consistent structure
+    if (result && result.records) {
+      products.value = result.records.map(product => ({
+        ...product,
+        productId: product.productId || product.id, // Ensure productId exists
+        price: Number(product.price) || 0,
+        availableStock: Number(product.availableStock) || 0,
+        imageUrl: product.imageUrl || '/api/placeholder/400/320',
+        name: product.name || 'Unnamed Product',
+        description: product.description || 'No description available'
+      }));
+      total.value = result.total || products.value.length;
+    }
   } catch (error) {
     console.error('Failed to load products:', error);
     error.value = error.message;

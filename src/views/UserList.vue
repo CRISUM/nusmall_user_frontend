@@ -32,6 +32,7 @@
 import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAllUsers, deleteUser as deleteUserApi } from '@/service/user'
+import { permissionService } from '@/service/permission'
 
 const router = useRouter()
 const users = ref([])
