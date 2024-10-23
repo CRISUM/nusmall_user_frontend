@@ -34,31 +34,53 @@
   import { useRouter } from 'vue-router'
   import { getUserById } from '@/service/user'
   import avatarImage from '@/assets/pic/useravatar.png'
+  import { getCurrentUserInfo } from '@/service/user';
+  import { permissionService } from '@/service/permission';
   
-  const router = useRouter()
-  const user = ref({})
-  const loading = ref(true)
-  const avatarSrc = avatarImage
-  
-  onMounted(async () => {
+  const user = ref({});
+  const loading = ref(true);
+  const error = ref(null);
+
+  const loadUserInfo = async () => {
     try {
-      const storedUser = JSON.parse(localStorage.getItem('user'))
-      if (storedUser && storedUser.id) {
-        const userData = await getUserById(storedUser.id)
-        user.value = userData
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await getCurrentUserInfo(token);
+      if (response.success) {
+        user.value = response.data;
       } else {
-        throw new Error('User data not found')
+        throw new Error(response.message);
       }
     } catch (error) {
-      console.error('Failed to load user data:', error)
+      console.error('Failed to load user info:', error);
+      error.value = error.message;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
-  })
+  };
+
+  const checkPermission = async (path) => {
+    try {
+      return await permissionService.checkPermission(path, 'GET');
+    } catch {
+      return false;
+    }
+  };
   
-  const goTo = (route) => {
-    router.push(route)
-  }
+  const goTo = async (route) => {
+    if (await checkPermission(route)) {
+      router.push(route);
+    } else {
+      showMessage('Access denied', 'error');
+    }
+  };
+
+  onMounted(() => {
+    loadUserInfo();
+  });
   </script>
   
   <style scoped>

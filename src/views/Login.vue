@@ -46,35 +46,54 @@ const toggle = (v) => {
 }
 
 const onSubmit = async () => {
-  console.log('Submit started');
   try {
     if (state.type === 'login') {
-      console.log('Attempting login');
-      const { token, user } = await login({
+      // 登录处理
+      const response = await login({
         username: state.username,
         password: state.password
       });
-      console.log('Login successful', token, user);
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      showMessage('Login successful', 'success');
-      console.log('About to navigate');
-      router.push('/api/user');
+
+      if (response.success) {
+        localStorage.setItem('token', `Bearer ${response.data.token}`);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        // 获取用户详细信息
+        const userInfo = await getCurrentUserInfo(response.data.token);
+        if (userInfo.success) {
+          localStorage.setItem('user', JSON.stringify(userInfo.data));
+        }
+
+        showMessage('Login successful', 'success');
+        router.push('/api/home');
+      } else {
+        throw new Error(response.message);
+      }
     } else {
-      await register({
+      // 注册处理
+      const response = await register({
         username: state.username,
         password: state.password,
         email: state.email,
-        role: 'CUSTOMER' // 默认注册为普通用户
-      })
-      state.type = 'login'
-      showMessage('Registration successful. Please log in.', 'success')
+        role: 'CUSTOMER',
+        createUser: 'system',
+        updateUser: 'system',
+        createDatetime: new Date(),
+        updateDatetime: new Date()
+      });
+
+      if (response.success) {
+        state.type = 'login';
+        showMessage('Registration successful. Please log in.', 'success');
+      } else {
+        throw new Error(response.message);
+      }
     }
   } catch (error) {
-    console.error('Error in onSubmit', error);
+    console.error('Error:', error);
     showMessage(error.message || 'An error occurred', 'error');
   }
-}
+};
 </script>
 
 <style scoped>

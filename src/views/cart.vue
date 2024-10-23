@@ -1,417 +1,484 @@
-<template>
-  <div class="cart-box">
-    <h2>Shopping Cart</h2>
+// src/views/cart.vue
+<script setup>
+import { computed, onMounted, ref } from 'vue';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+import { ServiceFacade } from '@/service/facade';
+import { StockLevel } from '@/components/StockLevel.vue';
+import { useAuth } from '@/composables/useAuth';
+import { InventoryStatus } from '@/constants/cartTypes';
+
+// Composables and state management
+const store = useStore();
+const router = useRouter();
+const { user } = useAuth();
+
+// Local state
+const loading = ref(false);
+const processingItems = ref(new Set());
+const errorMessage = ref('');
+const isProcessingCheckout = ref(false);
+const showConfirmDialog = ref(false);
+const itemToDelete = ref(null);
+
+// Computed properties
+const cart = computed(() => store.state.cart.cart);
+const cartItems = computed(() => store.state.cart.cartItems);
+const selectedItems = computed(() => store.state.cart.selectedItems);
+const cartTotal = computed(() => store.getters['cart/cartTotal']);
+const selectedTotal = computed(() => store.getters['cart/selectedItemsTotal']);
+const hasSelectedItems = computed(() => store.getters['cart/hasSelectedItems']);
+
+/**
+ * Toggle item selection
+ * @param {number} cartItemId 
+ * @param {boolean} isSelected 
+ */
+const toggleItemSelection = async (cartItemId, isSelected) => {
+  if (processingItems.value.has(cartItemId)) return;
+  
+  processingItems.value.add(cartItemId);
+  errorMessage.value = '';
+  
+  try {
+    await store.dispatch('cart/updateSelected', {
+      cartItemId,
+      isSelected: !isSelected
+    });
+  } catch (error) {
+    errorMessage.value = error.message;
+  } finally {
+    processingItems.value.delete(cartItemId);
+  }
+};
+
+/**
+ * Update item quantity
+ * @param {number} cartItemId 
+ * @param {number} newQuantity 
+ */
+const updateQuantity = async (cartItemId, newQuantity) => {
+  if (newQuantity < 1 || newQuantity > 99 || processingItems.value.has(cartItemId)) return;
+  
+  processingItems.value.add(cartItemId);
+  errorMessage.value = '';
+  
+  try {
+    const item = cartItems.value.find(item => item.cartItemId === cartItemId);
+    const stockStatus = await ServiceFacade.checkInventoryStatus(item.productId);
     
-    <!-- Loading State -->
-    <div v-if="loading" class="loading">
-      Loading cart...
+    if (stockStatus === InventoryStatus.OUT_OF_STOCK || stockStatus.availableStock < newQuantity) {
+      throw new Error(`Only ${stockStatus.availableStock || 0} items available`);
+    }
+
+    await store.dispatch('cart/updateQuantity', {
+      cartItemId,
+      quantity: newQuantity
+    });
+  } catch (error) {
+    errorMessage.value = error.message;
+  } finally {
+    processingItems.value.delete(cartItemId);
+  }
+};
+
+/**
+ * Remove item from cart
+ * @param {number} cartItemId 
+ */
+const removeItem = async (cartItemId) => {
+  itemToDelete.value = cartItemId;
+  showConfirmDialog.value = true;
+};
+
+const confirmDelete = async () => {
+  if (!itemToDelete.value) return;
+  
+  processingItems.value.add(itemToDelete.value);
+  errorMessage.value = '';
+  
+  try {
+    await store.dispatch('cart/removeItem', itemToDelete.value);
+  } catch (error) {
+    errorMessage.value = error.message;
+  } finally {
+    processingItems.value.delete(itemToDelete.value);
+    showConfirmDialog.value = false;
+    itemToDelete.value = null;
+  }
+};
+
+/**
+ * Remove all selected items
+ */
+const removeSelectedItems = async () => {
+  if (!hasSelectedItems.value) return;
+  
+  if (!confirm('Are you sure you want to remove all selected items?')) return;
+  
+  loading.value = true;
+  errorMessage.value = '';
+  
+  try {
+    await store.dispatch('cart/removeSelectedItems');
+  } catch (error) {
+    errorMessage.value = error.message;
+  } finally {
+    loading.value = false;
+  }
+};
+
+/**
+ * Process checkout for selected items
+ */
+const checkout = async () => {
+  if (!hasSelectedItems.value) {
+    errorMessage.value = 'Please select items to checkout';
+    return;
+  }
+
+  isProcessingCheckout.value = true;
+  errorMessage.value = '';
+
+  try {
+    const checkoutData = {
+      userId: user.value.id,
+      items: selectedItems.value.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price
+      })),
+      totalPrice: selectedTotal.value
+    };
+
+    const orderId = await ServiceFacade.processCheckout(checkoutData);
+    
+    store.dispatch('notification/show', {
+      type: 'success',
+      message: 'Order placed successfully!'
+    });
+
+    router.push(`/api/orders/${orderId}`);
+  } catch (error) {
+    errorMessage.value = error.message;
+  } finally {
+    isProcessingCheckout.value = false;
+  }
+};
+
+// Initialize cart
+onMounted(async () => {
+  loading.value = true;
+  try {
+    await store.dispatch('cart/initializeCart');
+  } catch (error) {
+    errorMessage.value = error.message;
+  } finally {
+    loading.value = false;
+  }
+});
+</script>
+
+<template>
+  <div class="cart-page">
+    <!-- Error Message -->
+    <div v-if="errorMessage" class="error-message">
+      <i class="error-icon"></i>
+      {{ errorMessage }}
+      <button class="close-btn" @click="errorMessage = ''">×</button>
     </div>
 
-    <!-- Cart Items -->
-    <div v-else-if="tempCartItems.length > 0" class="cart-items">
-      <div v-for="item in tempCartItems" :key="item.cartItemId" class="cart-item">
-        <img :src="item.goodsCoverImg" alt="Product Image" class="product-img" />
-        <div class="product-info">
-          <h3>{{ item.goodsName }}</h3>
-          <p>Price: ¥{{ item.sellingPrice }}</p>
-          <div class="quantity-control">
-            <button 
-              @click="updateQuantity(item.cartItemId, item.goodsCount - 1)" 
-              :disabled="item.goodsCount <= 1 || loading">-</button>
-            <span>{{ item.goodsCount }}</span>
-            <button 
-              @click="updateQuantity(item.cartItemId, item.goodsCount + 1)" 
-              :disabled="item.goodsCount >= 99 || loading">+</button>
-          </div>
-          <p class="subtotal">Subtotal: ¥{{ item.goodsCount * item.sellingPrice }}</p>
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading your cart...</p>
+    </div>
+
+    <!-- Cart Content -->
+    <template v-else>
+      <div v-if="cartItems.length" class="cart-content">
+        <!-- Cart Header -->
+        <div class="cart-header">
+          <h1>Shopping Cart</h1>
+          <button v-if="hasSelectedItems"
+                  class="danger-btn"
+                  @click="removeSelectedItems"
+                  :disabled="loading">
+            Remove Selected
+          </button>
         </div>
-        <div class="delete-control">
-          <button @click="deleteItem(item.cartItemId)" class="delete-button" :disabled="loading">
-            Delete
+
+        <!-- Cart Items -->
+        <div class="cart-items">
+          <div v-for="item in cartItems"
+               :key="item.cartItemId"
+               class="cart-item"
+               :class="{
+                 'processing': processingItems.has(item.cartItemId),
+                 'selected': item.isSelected
+               }">
+            
+            <!-- Item Selection -->
+            <div class="item-select">
+              <input type="checkbox"
+                     :checked="item.isSelected"
+                     @change="toggleItemSelection(item.cartItemId, item.isSelected)"
+                     :disabled="processingItems.has(item.cartItemId)">
+            </div>
+
+            <!-- Item Details -->
+            <div class="item-content">
+              <img :src="item.imageUrl" :alt="item.name" class="item-image">
+              
+              <div class="item-info">
+                <h3>{{ item.name }}</h3>
+                <p class="price">¥{{ item.price.toFixed(2) }}</p>
+                
+                <div class="quantity-control">
+                  <button @click="updateQuantity(item.cartItemId, item.quantity - 1)"
+                          :disabled="item.quantity <= 1 || processingItems.has(item.cartItemId)">-</button>
+                  <input type="number"
+                         v-model.number="item.quantity"
+                         @change="updateQuantity(item.cartItemId, item.quantity)"
+                         :disabled="processingItems.has(item.cartItemId)"
+                         min="1"
+                         max="99">
+                  <button @click="updateQuantity(item.cartItemId, item.quantity + 1)"
+                          :disabled="processingItems.has(item.cartItemId)">+</button>
+                </div>
+
+                <StockLevel :productId="item.productId" />
+                
+                <p class="subtotal">
+                  Subtotal: <span>¥{{ (item.price * item.quantity).toFixed(2) }}</span>
+                </p>
+              </div>
+
+              <button class="remove-btn"
+                      @click="removeItem(item.cartItemId)"
+                      :disabled="processingItems.has(item.cartItemId)">
+                <i class="delete-icon"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cart Summary -->
+        <div class="cart-summary">
+          <div class="summary-content">
+            <div class="summary-row">
+              <span>Selected Items:</span>
+              <span>{{ selectedItems.length }}</span>
+            </div>
+            <div class="summary-row">
+              <span>Selected Total:</span>
+              <span class="total">¥{{ selectedTotal.toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <button class="checkout-btn"
+                  @click="checkout"
+                  :disabled="!hasSelectedItems || isProcessingCheckout">
+            {{ isProcessingCheckout ? 'Processing...' : 'Proceed to Checkout' }}
           </button>
         </div>
       </div>
-    </div>
-    
-    <!-- Empty Cart -->
-    <div v-else class="empty-cart">
-      <p>Your cart is empty.</p>
-      <router-link to="/api/products" class="continue-shopping">Continue Shopping</router-link>
-    </div>
 
-    <!-- Cart Footer -->
-    <div v-if="tempCartItems.length > 0" class="cart-footer">
-      <div v-if="hasUnsavedChanges" class="changes-actions">
-        <button @click="cancelChanges" class="secondary-btn" :disabled="loading">
-          Cancel
-        </button>
-        <button @click="saveChanges" class="primary-btn" :disabled="loading">
-          Save Changes
-        </button>
+      <!-- Empty Cart -->
+      <div v-else class="empty-cart">
+        <img src="@/assets/pic/empty-cart.svg" alt="Empty Cart">
+        <p>Your cart is empty</p>
+        <router-link to="/api/products" class="shopping-btn">
+          Continue Shopping
+        </router-link>
       </div>
-      <div class="cart-summary">
-        <p class="total" v-if="hasUnsavedChanges">
-          Original Total: ¥{{ cartTotal }}
-          <br>
-          New Total: ¥{{ tempCartTotal }}
-        </p>
-        <p class="total" v-else>
-          Total: ¥{{ cartTotal }}
-        </p>
-        <button 
-          @click="checkout" 
-          class="checkout-button" 
-          :disabled="loading || hasUnsavedChanges">
-          {{ hasUnsavedChanges ? 'Save changes before checkout' : 'Proceed to Checkout' }}
-        </button>
+    </template>
+
+    <!-- Delete Confirmation Dialog -->
+    <div v-if="showConfirmDialog" class="confirm-dialog">
+      <div class="dialog-content">
+        <h3>Remove Item</h3>
+        <p>Are you sure you want to remove this item from your cart?</p>
+        <div class="dialog-actions">
+          <button class="secondary-btn" 
+                  @click="showConfirmDialog = false">Cancel</button>
+          <button class="danger-btn" 
+                  @click="confirmDelete"
+                  :disabled="loading">Remove</button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { computed, onMounted } from 'vue';
-import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
-import { checkStock } from '@/service/product'; // Add this import
-
-const store = useStore();
-const router = useRouter();
-
-// Computed properties
-const loading = computed(() => store.state.cart.loading);
-const tempCartItems = computed(() => store.getters['cart/tempCartItems']);
-const cartTotal = computed(() => store.getters['cart/cartTotal']);
-const tempCartTotal = computed(() => store.getters['cart/tempCartTotal']);
-const hasUnsavedChanges = computed(() => store.getters['cart/hasUnsavedChanges']);
-const cartItems = computed(() => store.state.cart.cartItems); // Add this line
-
-// Methods
-const updateQuantity = async (cartItemId, newQuantity) => {
-  if (newQuantity < 1 || newQuantity > 99) return;
-  
-  try {
-    const item = tempCartItems.value.find(item => item.cartItemId === cartItemId);
-    if (!item) return;
-
-    const stockAvailable = await checkStock(cartItemId, newQuantity);
-    if (!stockAvailable) {
-      throw new Error('Insufficient stock');
-    }
-
-    store.dispatch('cart/updateTempQuantity', { 
-      cartItemId, 
-      goodsCount: newQuantity 
-    });
-  } catch (error) {
-    console.error('Failed to update quantity:', error);
-    alert(error.message || 'Failed to update quantity');
-  }
-};
-
-const saveChanges = async () => {
-  try {
-    // 检查所有商品的库存
-    const stockChecks = tempCartItems.value.map(async item => {
-      const stockAvailable = await checkStock(
-        item.cartItemId, 
-        item.goodsCount
-      );
-      if (!stockAvailable) {
-        throw new Error(`Insufficient stock for ${item.goodsName}`);
-      }
-    });
-
-    await Promise.all(stockChecks);
-    
-    // 保存更改
-    await store.dispatch('cart/saveChanges');
-  } catch (error) {
-    console.error('Failed to save changes:', error);
-    alert(error.message || 'Failed to save changes');
-  }
-};
-
-
-const cancelChanges = () => {
-  store.dispatch('cart/revertChanges');
-};
-
-const deleteItem = async (cartItemId) => {
-  if (!confirm('Are you sure you want to remove this item?')) return;
-  
-  try {
-    await store.dispatch('cart/deleteCartItem', cartItemId);
-  } catch (error) {
-    console.error('Failed to delete item:', error);
-    alert(error.message || 'Failed to delete item');
-  }
-};
-
-const checkout = async () => {
-  if (hasUnsavedChanges.value) {
-    alert('Please save your changes before checking out');
-    return;
-  }
-
-  try {
-    // Check stock for all items
-    const stockChecks = cartItems.value.map(async item => {
-      const stockAvailable = await checkStock(
-        item.cartItemId, 
-        item.goodsCount
-      );
-      if (!stockAvailable) {
-        throw new Error(`Insufficient stock for ${item.goodsName}`);
-      }
-    });
-
-    await Promise.all(stockChecks);
-    
-    // Prepare cart data for checkout
-    const checkoutData = {
-      items: cartItems.value,
-      total: cartTotal.value
-    };
-
-    // Process checkout
-    await store.dispatch('cart/checkout', checkoutData);
-    
-    alert('Checkout successful!');
-    router.push('/api/orders');
-  } catch (error) {
-    console.error('Checkout failed:', error);
-    alert(error.message || 'Checkout failed');
-  }
-};
-
-// Initialize
-onMounted(() => {
-  store.dispatch('cart/fetchCartItems');
-});
-</script>
-
 <style scoped>
-
-.changes-actions {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
+.cart-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-.secondary-btn {
-  padding: 8px 16px;
-  background-color: #fff;
-  color: #666;
-  border: 1px solid #ddd;
+/* Error Message Styles */
+.error-message {
+  display: flex;
+  align-items: center;
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  padding: 12px 16px;
+  margin-bottom: 20px;
   border-radius: 4px;
+  color: #ff4d4f;
+}
+
+.error-icon {
+  margin-right: 8px;
+}
+
+.close-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #666;
   cursor: pointer;
 }
 
-.secondary-btn:hover {
-  background-color: #f5f5f5;
-}
-
-.cart-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  padding: 20px;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-}
-
-.cart-summary {
+/* Loading State Styles */
+.loading-state {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.total {
-  font-size: 1.1em;
-  text-align: right;
-}
-
-.checkout-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.cart-box {
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
-  padding-bottom: 80px;
-}
-
-.loading {
-  text-align: center;
+  align-items: center;
   padding: 40px;
-  color: #666;
 }
 
-.cart-items {
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #1baeae;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Cart Header Styles */
+.cart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
 }
 
+/* Cart Item Styles */
 .cart-item {
   display: flex;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
+  border: 1px solid #eee;
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
-.product-img {
-  width: 100px;
-  height: 100px;
+.cart-item.processing {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.cart-item.selected {
+  border-color: #1baeae;
+  background-color: #f6ffed;
+}
+
+.item-select {
+  padding: 0 16px;
+}
+
+.item-content {
+  display: flex;
+  flex: 1;
+}
+
+.item-image {
+  width: 120px;
+  height: 120px;
   object-fit: cover;
-  margin-right: 20px;
-}
-
-.product-info {
-  flex-grow: 1;
-}
-
-.product-info h3 {
-  margin: 0 0 10px;
-  color: #333;
-}
-
-.quantity-control {
-  display: flex;
-  align-items: center;
-  margin: 10px 0;
-}
-
-.quantity-control button {
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ddd;
-  background: white;
   border-radius: 4px;
-  cursor: pointer;
+  margin-right: 16px;
 }
 
-.quantity-control button:disabled {
-  background: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.quantity-control span {
-  margin: 0 15px;
-  min-width: 20px;
-  text-align: center;
-}
-
-.delete-button {
-  padding: 8px 16px;
-  background-color: #ff4444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.delete-button:hover {
-  background-color: #cc0000;
-}
-
-.delete-button:disabled {
-  background-color: #ffaaaa;
-  cursor: not-allowed;
-}
-
-.cart-footer {
-  position: fixed;
+/* Summary Styles */
+.cart-summary {
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
   background: white;
   padding: 20px;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
 }
 
-.cart-summary {
+.summary-row {
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 20px;
-  max-width: 800px;
-  margin: 0 auto;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
 .total {
+  color: #ff4d4f;
   font-size: 1.2em;
   font-weight: bold;
-  color: #333;
 }
 
-.checkout-button {
-  padding: 12px 24px;
-  background-color: #1baeae;
+/* Button Styles */
+.checkout-btn {
+  width: 100%;
+  padding: 12px;
+  background: #1baeae;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 1.1em;
+  transition: all 0.3s ease;
 }
 
-.checkout-button:hover {
-  background-color: #158f8f;
-}
-
-.checkout-button:disabled {
-  background-color: #cccccc;
+.checkout-btn:disabled {
+  background: #ccc;
   cursor: not-allowed;
 }
 
-.subtotal {
-  color: #666;
-  font-size: 0.9em;
-  margin-top: 5px;
-}
-
-.empty-cart {
-  text-align: center;
-  padding: 40px;
-}
-
-.continue-shopping {
-  display: inline-block;
-  margin-top: 20px;
-  padding: 10px 20px;
-  background-color: #1baeae;
+.danger-btn {
+  background: #ff4d4f;
   color: white;
-  text-decoration: none;
+  border: none;
+  padding: 8px 16px;
   border-radius: 4px;
+  cursor: pointer;
 }
 
-@media (max-width: 600px) {
-  .cart-item {
+.danger-btn:hover {
+  background: #ff7875;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .item-content {
     flex-direction: column;
-    text-align: center;
   }
-  
-  .product-img {
-    margin-right: 0;
-    margin-bottom: 15px;
+
+  .item-image {
+    width: 100%;
+    height: 200px;
+    margin-bottom: 16px;
   }
-  
-  .quantity-control {
-    justify-content: center;
-  }
-  
-  .delete-control {
-    margin-top: 15px;
-  }
-  
+
   .cart-summary {
-    flex-direction: column;
-    gap: 10px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
   }
 }
 </style>

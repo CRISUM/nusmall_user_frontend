@@ -22,6 +22,10 @@ nusmall_user_frontend
 │  │     ├─ mixin.less
 │  │     └─ theme.css
 │  ├─ components
+│  │  ├─ cart
+│  │  │  ├─ CartCheckout.vue
+│  │  │  ├─ CartItem.vue
+│  │  │  └─ CartToolbar.vue
 │  │  ├─ ErrorMessage.vue
 │  │  ├─ ListScroll.vue
 │  │  ├─ NavBar.vue
@@ -33,16 +37,19 @@ nusmall_user_frontend
 │  ├─ config
 │  │  └─ index.js
 │  ├─ constants
-│  │  └─ authTypes.js
+│  │  ├─ authTypes.js
+│  │  └─ cartTypes.js
 │  ├─ main.js
 │  ├─ router
 │  │  ├─ index.js
 │  │  └─ permissionGuard.js
 │  ├─ service
 │  │  ├─ cart.js
+│  │  ├─ facade.js
 │  │  ├─ inventory.js
 │  │  ├─ permission.js
 │  │  ├─ product.js
+│  │  ├─ stockCheck.js
 │  │  └─ user.js
 │  ├─ store
 │  │  ├─ cart.js

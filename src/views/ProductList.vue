@@ -1,223 +1,341 @@
 // src/views/ProductList.vue
+<!-- src/views/ProductList.vue -->
 <template>
     <div class="product-list">
-      <!-- Header Section -->
-      <div class="header">
+      <!-- Page Header -->
+      <div class="page-header">
         <h2>{{ pageTitle }}</h2>
-        <div class="header-actions" v-if="userRole !== 'CUSTOMER'">
+        <!-- Add Product Button (Seller/Admin only) -->
+        <div v-if="userRole !== 'CUSTOMER'" class="header-actions">
           <button class="primary-btn" @click="showAddProduct = true">
-            Add New Product
+            <i class="plus-icon"></i> Add New Product
           </button>
         </div>
       </div>
-   
-      <!-- Products Grid -->
-      <div class="products-grid">
-    <div v-for="product in products" :key="product.id" class="product-card">
-      <div class="product-image" @click="goToDetail(product.id)">
-        <img :src="product.imageUrl" :alt="product.name">
-      </div>
-      <div class="product-info">
-        <h3 @click="goToDetail(product.id)" class="product-title">{{ product.name }}</h3>
-        <p class="description">{{ product.description }}</p>
-        <p class="category">Category: {{ product.category }}</p>
-        <p class="price">¥{{ product.price }}</p>
-        <p v-if="showInventory" class="stock">
-          Stock: {{ product.availableStock || 0 }}
-        </p>
-        
-        <!-- Customer Actions -->
-        <div v-if="userRole === 'CUSTOMER'" class="actions">
-          <button 
-            class="primary-btn" 
-            @click="showAddToCartModal(product)"
-            :disabled="!product.availableStock"
+  
+      <!-- Filters Section -->
+      <div class="filters-section">
+        <div class="search-filters">
+          <input 
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search products..."
+            class="search-input"
+          />
+          <select 
+            v-model="selectedCategory"
+            @change="handleCategoryChange"
+            class="category-select"
           >
-            {{ getAddToCartButtonText(product) }}
-          </button>
+            <option value="">All Categories</option>
+            <option 
+              v-for="category in categories" 
+              :key="category.categoryId"
+              :value="category.categoryId"
+            >
+              {{ category.categoryName }}
+            </option>
+          </select>
+          <select v-model="sortBy" class="sort-select">
+            <option value="newest">Newest First</option>
+            <option value="price-low">Price Low to High</option>
+            <option value="price-high">Price High to Low</option>
+          </select>
         </div>
       </div>
-    </div>
-  </div>
-   
+  
       <!-- Loading State -->
       <div v-if="loading" class="loading">
-        Loading products...
+        <div class="spinner"></div>
+        <p>Loading products...</p>
       </div>
-   
+  
+      <!-- Error State -->
+      <div v-else-if="error" class="error">
+        <p>{{ error }}</p>
+        <button @click="loadProducts" class="retry-btn">Retry</button>
+      </div>
+  
       <!-- Empty State -->
-      <div v-if="!loading && products.length === 0" class="empty-state">
-        No products available.
+      <div v-else-if="products.length === 0" class="empty-state">
+        <p>No products found</p>
+        <div v-if="userRole !== 'CUSTOMER'" class="empty-actions">
+          <button @click="showAddProduct = true" class="primary-btn">
+            Add Your First Product
+          </button>
+        </div>
       </div>
-   
-      <!-- Modals -->
-      <transition name="fade">
-        <div v-if="showAddProduct || editingProduct || showInventoryModal || showCartModal || showDeleteConfirm" 
-             class="modal-container">
-          <!-- Add/Edit Product Modal -->
-          <div v-if="showAddProduct || editingProduct" class="modal">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h3>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h3>
-                <button class="close-btn" @click="closeModal">&times;</button>
-              </div>
-              
-              <form @submit.prevent="handleSubmit" class="product-form">
-                <div class="form-group">
-                  <label>Product Name</label>
-                  <input 
-                    v-model="productForm.name"
-                    type="text"
-                    required
-                    placeholder="Enter product name"
-                  >
-                </div>
-   
-                <div class="form-group">
-                  <label>Description</label>
-                  <textarea 
-                    v-model="productForm.description"
-                    required
-                    placeholder="Enter product description"
-                  ></textarea>
-                </div>
-   
-                <div class="form-group">
-                  <label>Price (¥)</label>
-                  <input 
-                    v-model.number="productForm.price"
-                    type="number"
-                    step="0.01"
-                    required
-                    placeholder="Enter price"
-                  >
-                </div>
-   
-                <div class="form-group">
-                  <label>Category</label>
-                  <input 
-                    v-model="productForm.category"
-                    type="text"
-                    required
-                    placeholder="Enter category"
-                  >
-                </div>
-   
-                <div class="form-group">
-                  <label>Initial Stock</label>
-                  <input 
-                    v-model.number="productForm.initialStock"
-                    type="number"
-                    required
-                    min="0"
-                    placeholder="Enter initial stock"
-                  >
-                </div>
-   
-                <div class="form-actions">
-                  <button type="button" class="secondary-btn" @click="closeModal">
-                    Cancel
-                  </button>
-                  <button type="submit" class="primary-btn">
-                    {{ editingProduct ? 'Update' : 'Add' }} Product
-                  </button>
-                </div>
-              </form>
+  
+      <!-- Products Grid -->
+      <div v-else class="products-grid">
+        <div 
+          v-for="product in filteredProducts" 
+          :key="product.productId" 
+          class="product-card"
+        >
+          <!-- Product Image -->
+          <div class="product-image" @click="goToDetail(product.productId)">
+            <img :src="product.imageUrl" :alt="product.name">
+            <div v-if="!product.availableStock" class="out-of-stock-overlay">
+              Out of Stock
             </div>
           </div>
-   
-          <!-- Inventory Management Modal -->
-          <div v-if="showInventoryModal" class="modal">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h3>Manage Inventory</h3>
-                <button class="close-btn" @click="closeInventoryModal">&times;</button>
-              </div>
-   
-              <div class="inventory-form">
-                <p class="current-stock">
-                  Current Stock: {{ currentInventory }}
-                </p>
-                <div class="form-group">
-                  <label>New Stock Level</label>
-                  <input 
-                    v-model.number="newStockLevel"
-                    type="number"
-                    min="0"
-                    required
-                  >
-                </div>
-   
-                <div class="form-actions">
-                  <button class="secondary-btn" @click="closeInventoryModal">
-                    Cancel
-                  </button>
-                  <button class="primary-btn" @click="updateStockLevel">
-                    Update Stock
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-   
-          <!-- Delete Confirmation Modal -->
-          <div v-if="showDeleteConfirm" class="modal">
-            <div class="modal-content confirmation">
-              <h3>Confirm Delete</h3>
-              <p>Are you sure you want to delete this product?</p>
-              <div class="confirmation-actions">
-                <button class="secondary-btn" @click="showDeleteConfirm = false">
-                  Cancel
+  
+          <!-- Product Info -->
+          <div class="product-info">
+            <h3 @click="goToDetail(product.productId)" class="product-title">
+              {{ product.name }}
+            </h3>
+            <p class="description">{{ product.description }}</p>
+            <p class="category">
+              Category: 
+              <span @click="filterByCategory(product.categoryId)">
+                {{ getCategoryName(product.categoryId) }}
+              </span>
+            </p>
+            <p class="price">¥{{ product.price.toFixed(2) }}</p>
+  
+            <!-- Stock Level -->
+            <StockLevel 
+              :productId="product.productId" 
+              :showCount="userRole !== 'CUSTOMER'"
+            />
+  
+            <!-- Actions -->
+            <div class="product-actions">
+              <!-- Customer Actions -->
+              <div v-if="userRole === 'CUSTOMER'" class="customer-actions">
+                <button 
+                  class="add-to-cart-btn" 
+                  @click="showAddToCartModal(product)"
+                  :disabled="!product.availableStock"
+                >
+                  {{ product.availableStock ? 'Add to Cart' : 'Out of Stock' }}
                 </button>
-                <button class="danger-btn" @click="deleteProduct">
-                  Delete
+              </div>
+  
+              <!-- Seller/Admin Actions -->
+              <div v-else class="management-actions">
+                <button 
+                  class="edit-btn" 
+                  @click="editProduct(product)"
+                  title="Edit product"
+                >
+                  <i class="edit-icon"></i>
+                </button>
+                <button 
+                  class="manage-stock-btn"
+                  @click="manageInventory(product)"
+                  title="Manage inventory"
+                >
+                  <i class="inventory-icon"></i>
+                </button>
+                <button 
+                  class="delete-btn"
+                  @click="confirmDelete(product)"
+                  title="Delete product"
+                >
+                  <i class="delete-icon"></i>
                 </button>
               </div>
             </div>
           </div>
-   
-          <!-- Add to Cart Modal -->
-          <div v-if="showCartModal" class="modal">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h3>Add to Cart</h3>
-                <button class="close-btn" @click="closeCartModal">&times;</button>
-              </div>
-              
-              <div class="modal-body">
-                <div class="product-info">
-                  <h4>{{ selectedProduct?.name }}</h4>
-                  <p>Price: ¥{{ selectedProduct?.price }}</p>
-                  <p>Available Stock: {{ selectedProduct?.availableStock }}</p>
-                </div>
-                
-                <div class="quantity-control">
-                  <label>Quantity:</label>
-                  <div class="quantity-input">
-                    <button @click="decreaseQuantity" :disabled="quantity <= 1">-</button>
-                    <input 
-                      type="number" 
-                      v-model.number="quantity"
-                      :min="1"
-                      :max="selectedProduct?.availableStock"
+        </div>
+      </div>
+  
+      <!-- Pagination -->
+      <div v-if="products.length > 0" class="pagination">
+        <button 
+          @click="prevPage" 
+          :disabled="currentPage === 1"
+          class="page-btn"
+        >
+          Previous
+        </button>
+        <span class="page-info">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+        <button 
+          @click="nextPage" 
+          :disabled="currentPage === totalPages"
+          class="page-btn"
+        >
+          Next
+        </button>
+      </div>
+  
+      <!-- Add/Edit Product Modal -->
+      <div v-if="showAddProduct || editingProduct" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h3>
+            <button @click="closeModal" class="close-btn">&times;</button>
+          </div>
+          
+          <form @submit.prevent="handleSubmit" class="product-form">
+            <div class="form-group">
+              <label>Product Name *</label>
+              <input 
+                v-model="productForm.name"
+                type="text"
+                required
+                maxlength="100"
+              />
+            </div>
+  
+            <div class="form-group">
+              <label>Description *</label>
+              <textarea 
+                v-model="productForm.description"
+                required
+                rows="4"
+                maxlength="500"
+              ></textarea>
+            </div>
+  
+            <div class="form-group">
+              <label>Category *</label>
+              <select v-model="productForm.categoryId" required>
+                <option value="">Select Category</option>
+                <option 
+                  v-for="category in categories"
+                  :key="category.categoryId"
+                  :value="category.categoryId"
+                >
+                  {{ category.categoryName }}
+                </option>
+              </select>
+            </div>
+  
+            <div class="form-group">
+              <label>Price (¥) *</label>
+              <input 
+                v-model.number="productForm.price"
+                type="number"
+                step="0.01"
+                min="0"
+                required
+              />
+            </div>
+  
+            <div class="form-group">
+              <label>Initial Stock *</label>
+              <input 
+                v-model.number="productForm.initialStock"
+                type="number"
+                min="0"
+                required
+              />
+            </div>
+  
+            <div class="form-group">
+              <label>Product Images</label>
+              <div class="image-upload-area">
+                <input 
+                  type="file" 
+                  @change="handleImageUpload" 
+                  multiple 
+                  accept="image/*"
+                />
+                <div class="image-preview">
+                  <div 
+                    v-for="(url, index) in productForm.imageUrls"
+                    :key="index"
+                    class="image-preview-item"
+                  >
+                    <img :src="url" alt="Preview">
+                    <button 
+                      type="button" 
+                      @click="removeImage(index)"
+                      class="remove-image"
                     >
-                    <button @click="increaseQuantity" 
-                            :disabled="quantity >= selectedProduct?.availableStock">+</button>
+                      ×
+                    </button>
                   </div>
                 </div>
               </div>
-   
-              <div class="modal-footer">
-                <button class="secondary-btn" @click="closeCartModal">Cancel</button>
-                <button class="primary-btn" @click="confirmAddToCart">Add to Cart</button>
+            </div>
+  
+            <div class="modal-actions">
+              <button type="button" @click="closeModal" class="cancel-btn">
+                Cancel
+              </button>
+              <button type="submit" class="primary-btn">
+                {{ editingProduct ? 'Update' : 'Create' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+  
+      <!-- Delete Confirmation Modal -->
+      <div v-if="showDeleteConfirm" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Confirm Delete</h3>
+            <button @click="closeDeleteModal" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to delete this product?</p>
+            <div class="product-info">
+              <p><strong>Name:</strong> {{ productToDelete?.name }}</p>
+              <p><strong>Category:</strong> {{ getCategoryName(productToDelete?.categoryId) }}</p>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button @click="closeDeleteModal" class="cancel-btn">Cancel</button>
+            <button @click="deleteProduct" class="delete-btn">Delete</button>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Add to Cart Modal -->
+      <div v-if="showCartModal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Add to Cart</h3>
+            <button @click="closeCartModal" class="close-btn">&times;</button>
+          </div>
+          
+          <div class="modal-body">
+            <div class="product-info">
+              <h4>{{ selectedProduct?.name }}</h4>
+              <p>Price: ¥{{ selectedProduct?.price }}</p>
+              <p>Available Stock: {{ selectedProduct?.availableStock }}</p>
+            </div>
+            
+            <div class="quantity-control">
+              <label>Quantity:</label>
+              <div class="quantity-input">
+                <button 
+                  @click="decreaseQuantity" 
+                  :disabled="quantity <= 1"
+                >-</button>
+                <input 
+                  type="number" 
+                  v-model.number="quantity"
+                  :min="1"
+                  :max="selectedProduct?.availableStock"
+                >
+                <button 
+                  @click="increaseQuantity" 
+                  :disabled="quantity >= selectedProduct?.availableStock"
+                >+</button>
               </div>
             </div>
           </div>
+  
+          <div class="modal-actions">
+            <button @click="closeCartModal" class="cancel-btn">Cancel</button>
+            <button @click="confirmAddToCart" class="primary-btn">
+              Add to Cart
+            </button>
+          </div>
         </div>
-      </transition>
+      </div>
     </div>
-   </template>
-
+  </template>
+  
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
@@ -259,6 +377,41 @@ const showCartModal = ref(false)
 const selectedProduct = ref(null)
 const quantity = ref(1)
 const router = useRouter();
+const categories = ref([]);
+const selectedCategory = ref('');
+
+const loadCategories = async () => {
+  try {
+    const response = await pageQuery({
+      page: 1,
+      pageSize: 100
+    });
+    categories.value = response.records;
+  } catch (error) {
+    console.error('Failed to load categories:', error);
+  }
+};
+
+const filteredProducts = computed(() => {
+  let result = [...products.value];
+  
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(product => 
+      product.name.toLowerCase().includes(query) ||
+      product.description.toLowerCase().includes(query)
+    );
+  }
+  
+  if (selectedCategory.value) {
+    result = result.filter(product => 
+      product.categoryId === parseInt(selectedCategory.value)
+    );
+  }
+  
+  return result;
+});
+
 
 const goToDetail = (productId) => {
   router.push(`/api/product/${productId}`);
@@ -268,10 +421,12 @@ const productForm = ref({
   name: '',
   description: '',
   price: '',
-  category: '',
-  initialStock: 0,
-  imageUrl: '/api/placeholder/400/320' // 默认图片
-})
+  categoryId: '', 
+  availableStock: 0,
+  imageUrls: [], 
+  createUser: '',
+  updateUser: ''
+});
 
 const pageTitle = computed(() => {
   switch (userRole.value) {
@@ -346,35 +501,30 @@ const confirmAddToCart = async () => {
 const handleSubmit = async () => {
   try {
     const token = localStorage.getItem('token');
-    const productData = { ...productForm.value };
+    const formData = new FormData();
     
-    // 检查权限
-    const hasPermission = await permissionService.checkPermission(
-      '/api/products',
-      editingProduct.value ? 'PUT' : 'POST'
-    );
-    
-    if (!hasPermission) {
-      throw new Error('You do not have permission to perform this action');
-    }
+    // 按后端 DTO 格式构造数据
+    Object.keys(productForm.value).forEach(key => {
+      if (key === 'imageUrls') {
+        productForm.value.imageUrls.forEach(url => {
+          formData.append('imageUrls', url);
+        });
+      } else {
+        formData.append(key, productForm.value[key]);
+      }
+    });
 
     if (editingProduct.value) {
-      await updateProduct(token, editingProduct.value.id, productData);
-      // 同时更新库存
-      if (productData.initialStock !== undefined) {
-        await updateInventory(token, editingProduct.value.id, productData.initialStock);
-      }
+      await updateProduct(token, formData);
     } else {
-      const newProduct = await createProduct(token, productData);
-      // 设置初始库存
-      await updateInventory(token, newProduct.id, productData.initialStock || 0);
+      await save(token, formData);
     }
     
     closeModal();
     await loadProducts();
   } catch (error) {
     console.error('Failed to save product:', error);
-    alert(error.message || 'Failed to save product');
+    alert(error.message);
   }
 };
 
@@ -442,54 +592,65 @@ const confirmDelete = (product) => {
 }
 
 const deleteProduct = async () => {
-  if (!productToDelete.value) return
+  if (!productToDelete.value) return;
   
   try {
-    const token = localStorage.getItem('token')
-    await deleteProductApi(token, productToDelete.value.id)
-    await loadProducts()
-    showDeleteConfirm.value = false
-    productToDelete.value = null
+    await deleteById(productToDelete.value.id);
+    await loadProducts();
+    showDeleteConfirm.value = false;
+    productToDelete.value = null;
   } catch (error) {
-    console.error('Failed to delete product:', error)
-    alert('Failed to delete product: ' + error.message)
+    if (error.message.includes('DeletionNotAllowedException')) {
+      alert('Cannot delete product as it is associated with orders');
+    } else {
+      alert('Failed to delete product: ' + error.message);
+    }
   }
-}
+};
+
+const handleImageUpload = async (file) => {
+  try {
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await upload(formData);
+    productForm.value.imageUrls.push(response.url);
+  } catch (error) {
+    console.error('Failed to upload image:', error);
+    alert('Failed to upload image');
+  }
+};
 
 // Load products
 const loadProducts = async () => {
   try {
-    loading.value = true
-    let result
+    loading.value = true;
+    let result;
+
+    const queryParams = {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      categoryId: selectedCategory.value || undefined,
+      name: searchQuery.value || undefined
+    };
 
     if (isSeller.value) {
-      result = await getProductsByMerchant(localStorage.getItem('token'))
+      result = await pageQueryMerchant(authToken, queryParams);
     } else {
-      result = await getAllProducts()
+      result = await pageQueryConsumer(queryParams);
     }
     
-    // 加载每个产品的库存信息
-    const productsWithStock = await Promise.all(
-      result.map(async product => {
-        const stock = await getInventory(
-          localStorage.getItem('token'), 
-          product.id
-        );
-        return {
-          ...product,
-          availableStock: stock
-        };
-      })
-    );
-    
-    products.value = productsWithStock;
+    products.value = result.records;
+    total.value = result.total;
   } catch (error) {
     console.error('Failed to load products:', error);
-    error.value = error.message || 'Failed to load products';
+    error.value = error.message;
   } finally {
     loading.value = false;
   }
 };
+
 
 // Initialize
 onMounted(async () => {
@@ -876,6 +1037,13 @@ onMounted(async () => {
 
 .product-image:hover {
   opacity: 0.8;
+}
+
+.category-select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 10px;
 }
 
 }

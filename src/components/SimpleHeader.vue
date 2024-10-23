@@ -54,6 +54,28 @@
       }
     }
   }
+
+  const getDefaultBack = () => {
+  const route = useRoute();
+  
+  // 定义特定路由的返回逻辑
+  const routeBackMap = {
+      'inventory': '/api/home',
+      'product-detail': '/api/products',
+      'category-management': '/api/home',
+      'merchant-products': '/api/home'
+    };
+
+    return routeBackMap[route.name] || '/';
+  };
+
+  const goBack = () => {
+    if (props.back) {
+      router.push(props.back);
+    } else {
+      router.go(-1);
+    }
+  };
   </script>
   
   <style lang="less" scoped>

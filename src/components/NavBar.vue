@@ -53,6 +53,101 @@ const logout = () => {
   localStorage.removeItem('user');
   router.push('/api/login');
 };
+
+const routes = computed(() => {
+  const baseRoutes = [
+    { path: '/api/home', name: 'Home', access: 'all' },
+    { path: '/api/products', name: 'Shop', access: 'all' },
+    { path: '/api/cart', name: 'Shopping Cart', access: 'authenticated' },
+    { path: '/api/user', name: 'My Profile', access: 'authenticated' }
+  ];
+
+  if (userRole.value === 'ADMIN') {
+    baseRoutes.push(
+      { path: '/api/users', name: 'User Management', access: 'admin' },
+      { path: '/api/inventory', name: 'Inventory Management', access: 'admin' },
+      { path: '/api/categories', name: 'Category Management', access: 'admin' }
+    );
+  } else if (userRole.value === 'SELLER') {
+    baseRoutes.push(
+      { path: '/api/merchant/products', name: 'My Products', access: 'seller' },
+      { path: '/api/inventory', name: 'Inventory', access: 'seller' }
+    );
+  }
+
+  return baseRoutes;
+});
+
+const checkAccess = (route) => {
+  switch (route.access) {
+    case 'all':
+      return true;
+    case 'authenticated':
+      return !!userRole.value;
+    case 'admin':
+      return userRole.value === 'ADMIN';
+    case 'seller':
+      return userRole.value === 'SELLER';
+    default:
+      return false;
+  }
+};
+
+const menuItems = computed(() => [
+  { path: '/api/home', label: 'Home', role: 'all' },
+  { path: '/api/products', label: 'Shop', role: 'all' },
+  { 
+    path: '/api/categories', 
+    label: 'Categories', 
+    role: 'all',
+    children: categories.value.map(cat => ({
+      path: `/api/products?category=${cat.categoryId}`,
+      label: cat.categoryName
+    }))
+  },
+  { path: '/api/cart', label: 'Shopping Cart', role: 'authenticated' },
+  { path: '/api/profile', label: 'My Profile', role: 'authenticated' },
+  // Admin only items
+  { 
+    path: '/api/admin', 
+    label: 'Admin', 
+    role: 'ADMIN',
+    children: [
+      { path: '/api/users', label: 'Users Management' },
+      { path: '/api/category-management', label: 'Categories Management' },
+      { path: '/api/inventory', label: 'Inventory Management' }
+    ]
+  },
+  // Seller only items
+  { 
+    path: '/api/seller', 
+    label: 'Seller', 
+    role: 'SELLER',
+    children: [
+      { path: '/api/merchant/products', label: 'My Products' },
+      { path: '/api/inventory', label: 'My Inventory' }
+    ]
+  }
+]);
+
+// Add categories loading
+const categories = ref([]);
+
+const loadCategories = async () => {
+  try {
+    const response = await pageQuery({
+      page: 1,
+      pageSize: 100
+    });
+    categories.value = response.records;
+  } catch (error) {
+    console.error('Failed to load categories:', error);
+  }
+};
+
+onMounted(() => {
+  loadCategories();
+});
 </script>
 
 <style scoped>

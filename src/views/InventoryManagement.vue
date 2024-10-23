@@ -1,128 +1,91 @@
 // src/views/InventoryManagement.vue
-<template>
-  <div class="inventory-management">
-    <h2>Inventory Management</h2>
-    
-    <div v-if="loading" class="loading">
-      Loading inventory...
-    </div>
-
-    <div v-else-if="error" class="error">
-      {{ error }}
-    </div>
-
-    <div v-else class="inventory-list">
-      <table>
-        <thead>
-          <tr>
-            <th>Product ID</th>
-            <th>Product Name</th>
-            <th>Current Stock</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="product in products" :key="product.id">
-            <td>{{ product.id }}</td>
-            <td>{{ product.name }}</td>
-            <td>{{ getProductStock(product.id) }}</td>
-            <td>
-              <button 
-                class="update-btn"
-                @click="openUpdateModal(product)"
-              >
-                Update Stock
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Stock Update Modal -->
-    <div v-if="showUpdateModal" class="modal">
-      <div class="modal-content">
-        <h3>Update Stock for {{ selectedProduct?.name }}</h3>
-        <div class="form-group">
-          <label>Current Stock: {{ currentStock }}</label>
-          <input 
-            type="number" 
-            v-model.number="newStockLevel"
-            min="0"
-            class="stock-input"
-          >
-        </div>
-        <div class="modal-actions">
-          <button class="cancel-btn" @click="closeModal">Cancel</button>
-          <button class="update-btn" @click="updateStock">Update</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'  // Add onMounted import
-import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
-import { permissionService } from '@/service/permission'
-import { UserRoles } from '@/constants/authTypes'  
-import { useAuth } from '@/composables/useAuth'
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
+import StockLevel from '@/components/StockLevel.vue';
+import { 
+  getInventory, 
+  updateInventory, 
+  checkStock, 
+  getInventoryHistory 
+} from '@/service/inventory';
+import { getAllProducts, getProductsByMerchant } from '@/service/product';
 
-const store = useStore()
-const router = useRouter()
-const loading = ref(false)
-const error = ref(null)
-const showUpdateModal = ref(false)
-const selectedProduct = ref(null)
-const newStockLevel = ref(0)
-const currentStock = ref(0)
-// 从 product store 获取产品列表
-const products = computed(() => store.state.product.products);
+const router = useRouter();
+const store = useStore();
+const user = JSON.parse(localStorage.getItem('user'));
+const authToken = localStorage.getItem('token');
 
-const { userRole, isAdmin, isSeller } = useAuth()
+// State
+const products = ref([]);
+const loading = ref(false);
+const error = ref(null);
+const showUpdateModal = ref(false);
+const showHistoryModal = ref(false);
+const selectedProduct = ref(null);
+const currentStock = ref(0);
+const newStockLevel = ref(0);
+const stockHistory = ref([]);
+const lowStockThreshold = ref(10);
+const searchQuery = ref('');
+const sortBy = ref('name');
+const sortOrder = ref('asc');
 
-// 获取特定产品的库存
-const getProductStock = (productId) => {
-  return store.getters['inventory/getProductStock'](productId);
-};
-
-const checkPermissions = async () => {
-  if (!isSeller.value && !isAdmin.value) {
-    router.push('/403')
-    return false
+// Computed
+const filteredProducts = computed(() => {
+  let result = [...products.value];
+  
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(product => 
+      product.name.toLowerCase().includes(query) ||
+      product.id.toString().includes(query)
+    );
   }
-  return true
-}
+  
+  result.sort((a, b) => {
+    const aValue = a[sortBy.value];
+    const bValue = b[sortBy.value];
+    return sortOrder.value === 'asc' ? 
+      aValue > bValue ? 1 : -1 : 
+      aValue < bValue ? 1 : -1;
+  });
+  
+  return result;
+});
 
-const loadInventory = async () => {
+const lowStockProducts = computed(() => {
+  return products.value.filter(p => p.availableStock <= lowStockThreshold.value);
+});
+
+// Methods
+const loadInventoryData = async () => {
   try {
     loading.value = true;
-    // 检查权限
-    const hasPermission = await permissionService.checkPermission(
-      '/api/inventory', 
-      'GET'
-    );
-    
-    if (!hasPermission) {
-      error.value = 'You do not have permission to view inventory';
-      return;
-    }
+    error.value = null;
 
-    // 加载所有产品
-    await store.dispatch('product/fetchProducts', {
-      role: userRole.value,
-      token: localStorage.getItem('token')
-    });
-    
-    // 为每个产品加载库存信息
-    for (const product of products.value) {
-      await store.dispatch('inventory/fetchInventory', { 
-        productId: product.id 
-      });
-    }
+    // Get products based on user role
+    const productsData = user.role === 'SELLER' ? 
+      await getProductsByMerchant(authToken) :
+      await getAllProducts();
+
+    // Get inventory for each product
+    const productsWithStock = await Promise.all(
+      productsData.map(async product => {
+        const stock = await getInventory(authToken, product.productId);
+        return {
+          ...product,
+          availableStock: stock
+        };
+      })
+    );
+
+    products.value = productsWithStock;
   } catch (err) {
     error.value = err.message;
+    console.error('Failed to load inventory:', err);
   } finally {
     loading.value = false;
   }
@@ -131,9 +94,7 @@ const loadInventory = async () => {
 const openUpdateModal = async (product) => {
   try {
     selectedProduct.value = product;
-    const stock = await store.dispatch('inventory/fetchInventory', { 
-      productId: product.id 
-    });
+    const stock = await getInventory(authToken, product.productId);
     currentStock.value = stock;
     newStockLevel.value = stock;
     showUpdateModal.value = true;
@@ -142,148 +103,229 @@ const openUpdateModal = async (product) => {
   }
 };
 
-const closeModal = () => {
-  showUpdateModal.value = false;
-  selectedProduct.value = null;
-  newStockLevel.value = 0;
-  currentStock.value = 0;
-};
-
 const updateStock = async () => {
-  if (!selectedProduct.value) return;
-  
   try {
-    // 检查权限
-    const hasPermission = await permissionService.checkPermission(
-      '/api/inventory', 
-      'PUT'
+    if (!selectedProduct.value) return;
+    
+    await updateInventory(
+      authToken,
+      selectedProduct.value.productId, 
+      newStockLevel.value
     );
     
-    if (!hasPermission) {
-      throw new Error('You do not have permission to update inventory');
-    }
-
-    await store.dispatch('inventory/updateStock', {
-      productId: selectedProduct.value.id,
-      quantity: newStockLevel.value
-    });
-    
-    closeModal();
-    await loadInventory(); // 重新加载数据
+    await loadInventoryData();
+    showUpdateModal.value = false;
+    selectedProduct.value = null;
   } catch (err) {
     error.value = err.message;
   }
 };
 
-// 初始化
-onMounted(async () => {
-  if (await checkPermissions()) {
-    await loadInventory()
+const viewStockHistory = async (product) => {
+  try {
+    selectedProduct.value = product;
+    stockHistory.value = await getInventoryHistory(product.productId);
+    showHistoryModal.value = true;
+  } catch (err) {
+    error.value = err.message;
   }
-})
+};
+
+const closeModals = () => {
+  showUpdateModal.value = false;
+  showHistoryModal.value = false;
+  selectedProduct.value = null;
+  currentStock.value = 0;
+  newStockLevel.value = 0;
+  stockHistory.value = [];
+};
+
+const checkStockLevel = async (productId, quantity) => {
+  try {
+    return await checkStock(productId, quantity);
+  } catch (err) {
+    console.error('Failed to check stock:', err);
+    return false;
+  }
+};
+
+const toggleSort = (field) => {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortBy.value = field;
+    sortOrder.value = 'asc';
+  }
+};
+
+// Initialize
+onMounted(async () => {
+  await loadInventoryData();
+});
 </script>
 
+<template>
+  <div class="inventory-management">
+    <div class="header">
+      <h1>Inventory Management</h1>
+      <div class="filters">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search products..."
+          class="search-input"
+        />
+        <select v-model="lowStockThreshold" class="threshold-select">
+          <option :value="5">5 items</option>
+          <option :value="10">10 items</option>
+          <option :value="20">20 items</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div v-if="lowStockProducts.length > 0" class="low-stock-alert">
+      <h3>Low Stock Alert</h3>
+      <ul>
+        <li v-for="product in lowStockProducts" :key="product.productId">
+          {{ product.name }} - Only {{ product.availableStock }} left
+        </li>
+      </ul>
+    </div>
+
+    <!-- Main Inventory Table -->
+    <div class="inventory-table">
+      <table v-if="!loading">
+        <thead>
+          <tr>
+            <th @click="toggleSort('productId')">Product ID</th>
+            <th @click="toggleSort('name')">Product Name</th>
+            <th @click="toggleSort('availableStock')">Current Stock</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="product in filteredProducts" :key="product.productId">
+            <td>{{ product.productId }}</td>
+            <td>{{ product.name }}</td>
+            <td :class="{ 'low-stock': product.availableStock <= lowStockThreshold }">
+              {{ product.availableStock }}
+            </td>
+            <td>
+              <StockLevel :productId="product.productId" :threshold="lowStockThreshold" />
+            </td>
+            <td>
+              <button @click="openUpdateModal(product)">Update Stock</button>
+              <button @click="viewStockHistory(product)">View History</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="loading">
+      Loading inventory data...
+    </div>
+
+    <!-- Error State -->
+    <div v-if="error" class="error">
+      {{ error }}
+    </div>
+
+    <!-- Update Stock Modal -->
+    <div v-if="showUpdateModal" class="modal">
+      <div class="modal-content">
+        <h2>Update Stock Level</h2>
+        <p>Product: {{ selectedProduct?.name }}</p>
+        <p>Current Stock: {{ currentStock }}</p>
+        <div class="form-group">
+          <label>New Stock Level:</label>
+          <input 
+            v-model.number="newStockLevel"
+            type="number"
+            min="0"
+          />
+        </div>
+        <div class="modal-actions">
+          <button @click="closeModals">Cancel</button>
+          <button @click="updateStock" class="primary">Update</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock History Modal -->
+    <div v-if="showHistoryModal" class="modal">
+      <div class="modal-content">
+        <h2>Stock History</h2>
+        <p>Product: {{ selectedProduct?.name }}</p>
+        <div class="history-list">
+          <div v-for="record in stockHistory" :key="record.id" class="history-item">
+            <span>{{ new Date(record.timestamp).toLocaleString() }}</span>
+            <span>{{ record.type }}</span>
+            <span>Quantity: {{ record.quantity }}</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button @click="closeModals">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-.inventory-management {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+/* 保留原有样式并添加以下新样式 */
+.low-stock-alert {
+  background-color: #fff3e0;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  border-left: 4px solid #ff9800;
 }
 
-.inventory-list table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-.inventory-list th,
-.inventory-list td {
-  padding: 12px;
-  border: 1px solid #ddd;
-  text-align: left;
-}
-
-.inventory-list th {
-  background-color: #f5f5f5;
-}
-
-.loading,
-.error {
-  text-align: center;
-  padding: 20px;
-  font-size: 1.1em;
-}
-
-.error {
+.low-stock {
   color: #ff4444;
 }
 
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+.history-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.history-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: space-between;
 }
 
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  min-width: 300px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
-.form-group {
-  margin: 20px 0;
+.search-input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 200px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 10px;
-}
-
-.stock-input {
-  width: 100%;
+.threshold-select {
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.update-btn {
-  background: #1baeae;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
+th {
   cursor: pointer;
+  user-select: none;
 }
 
-.update-btn:hover {
-  background: #158f8f;
-}
-
-.cancel-btn {
-  background: #fff;
-  color: #666;
-  border: 1px solid #ddd;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.cancel-btn:hover {
-  background: #f5f5f5;
+th:hover {
+  background-color: #f5f5f5;
 }
 </style>

@@ -36,6 +36,11 @@ import { getAllUsers, deleteUser as deleteUserApi } from '@/service/user'
 const router = useRouter()
 const users = ref([])
 const showMessage = inject('showMessage')
+const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const searchQuery = ref('');
 
 onMounted(async () => {
   try {
@@ -45,25 +50,78 @@ onMounted(async () => {
   }
 })
 
+const loadUsers = async () => {
+  try {
+    loading.value = true;
+    const response = await getAllUsers();
+    
+    if (response.success) {
+      users.value = response.data;
+      total.value = response.total || response.data.length;
+    } else {
+      throw new Error(response.message);
+    }
+  } catch (error) {
+    showMessage(error.message || 'Failed to fetch users', 'error');
+  } finally {
+    loading.value = false;
+  }
+};
+
 const editUser = (userId) => {
   router.push(`/api/users/${userId}/edit`)
 }
 
 const deleteUser = async (userId) => {
-  if (confirm('Are you sure you want to delete this user?')) {
-    try {
-      await deleteUserApi(userId)
-      users.value = users.value.filter(user => user.id !== userId)
-      showMessage('User deleted successfully', 'success')
-    } catch (error) {
-      showMessage('Failed to delete user', 'error')
-    }
+  if (!confirm('Are you sure you want to delete this user?')) {
+    return;
   }
-}
 
-const createNewUser = () => {
-  router.push('/api/users/new')
-}
+  try {
+    const response = await deleteUserApi(userId);
+    if (response.success) {
+      showMessage('User deleted successfully', 'success');
+      await loadUsers();
+    } else {
+      throw new Error(response.message);
+    }
+  } catch (error) {
+    showMessage(error.message || 'Failed to delete user', 'error');
+  }
+};
+
+const createNewUser = async () => {
+  try {
+    const hasPermission = await permissionService.checkPermission('/api/users', 'POST');
+    if (hasPermission) {
+      router.push('/api/users/new');
+    } else {
+      showMessage('Access denied', 'error');
+    }
+  } catch (error) {
+    showMessage(error.message || 'Permission check failed', 'error');
+  }
+};
+
+const handleSearch = () => {
+  currentPage.value = 1;
+  loadUsers();
+};
+
+const handlePageChange = (page) => {
+  currentPage.value = page;
+  loadUsers();
+};
+
+onMounted(async () => {
+  const hasPermission = await permissionService.checkPermission('/api/users', 'GET');
+  if (hasPermission) {
+    await loadUsers();
+  } else {
+    router.push('/403');
+  }
+});
+
 </script>
 
 <style scoped>

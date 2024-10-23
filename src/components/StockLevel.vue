@@ -13,6 +13,21 @@
 import { computed } from 'vue';
 import { useStore } from 'vuex';
 
+const stock = ref(0);
+const loading = ref(true);
+
+const checkStockStatus = async () => {
+  try {
+    const availableStock = await getInventory(null, props.productId);
+    stock.value = availableStock;
+  } catch (error) {
+    console.error('Failed to get stock status:', error);
+    stock.value = 0;
+  } finally {
+    loading.value = false;
+  }
+};
+
 const props = defineProps({
   productId: {
     type: Number,
@@ -29,10 +44,6 @@ const props = defineProps({
 });
 
 const store = useStore();
-
-const stock = computed(() => 
-  store.getters['inventory/getProductStock'](props.productId)
-);
 
 const stockLevelClass = computed(() => {
   if (stock.value <= 0) return 'out-of-stock';
@@ -56,6 +67,20 @@ const showAlert = computed(() =>
 const alertMessage = computed(() => 
   `Only ${stock.value} items left!`
 );
+
+let stockUpdateInterval;
+onMounted(() => {
+  checkStockStatus();
+  if (props.autoUpdate) {
+    stockUpdateInterval = setInterval(checkStockStatus, 30000); // 每30秒更新一次
+  }
+});
+
+onUnmounted(() => {
+  if (stockUpdateInterval) {
+    clearInterval(stockUpdateInterval);
+  }
+});
 </script>
 
 <style scoped>
