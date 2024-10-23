@@ -905,5 +905,12 @@ export const updateCategory = async (categoryDTO) => {
   }
 };
 
+// 根据 categoryId 获取分类名称
+export const getCategoryName = (categoryId) => {
+  const data = JSON.parse(localStorage.getItem(CATEGORY_STORAGE_KEY));
+  const category = data.categories.find(c => c.categoryId === categoryId);
+  return category ? category.categoryName : 'Unknown Category';
+};
+
 // 初始化分类数据
 initCategoryData();

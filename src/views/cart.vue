@@ -23,7 +23,7 @@ const itemToDelete = ref(null);
 
 // Computed properties
 const cart = computed(() => store.state.cart.cart);
-const cartItems = computed(() => store.state.cart.cartItems);
+const cartItems = computed(() => store.state.cart.cartItems || []);
 const selectedItems = computed(() => store.state.cart.selectedItems);
 const cartTotal = computed(() => store.getters['cart/cartTotal']);
 const selectedTotal = computed(() => store.getters['cart/selectedItemsTotal']);
@@ -196,7 +196,7 @@ onMounted(async () => {
 
     <!-- Cart Content -->
     <template v-else>
-      <div v-if="cartItems.length" class="cart-content">
+      <div v-if="cartItems && cartItems.length > 0" class="cart-content">
         <!-- Cart Header -->
         <div class="cart-header">
           <h1>Shopping Cart</h1>

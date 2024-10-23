@@ -64,6 +64,15 @@ import { getCart, updateItemQuantity, removeItemFromCart, clearCart,
         commit('SET_LOADING', false);
       }
     },
+
+    async fetchCartItems({ commit }) {
+      try {
+        const items = await getCart();
+        commit('SET_CART_ITEMS', items);
+      } catch (error) {
+        console.error('Failed to fetch cart items:', error);
+      }
+    },
   
     async updateQuantity({ commit, state }, { cartItemId, quantity }) {
       commit('SET_LOADING', true);

@@ -93,7 +93,7 @@
                 {{ getCategoryName(product.categoryId) }}
               </span>
             </p>
-            <p class="price">¥{{ product.price.toFixed(2) }}</p>
+            <p class="price">¥{{ product.price ? product.price.toFixed(2) : 'N/A' }}</p>
   
             <!-- Stock Level -->
             <StockLevel 
@@ -345,6 +345,7 @@ import { UserRoles } from '@/constants/authTypes'
 import { useAuth } from '@/composables/useAuth'
 import StockLevel from '@/components/StockLevel.vue';
 
+
 import { 
   getAllProducts,
   getProductsByMerchant,
@@ -356,7 +357,10 @@ import {
   uploadImage,
   checkStock
 } from '@/service/product'
-import { permissionService } from '@/service/permission' // Add this import
+
+import { permissionService } from '@/service/permission' 
+import { pageQuery } from '@/service/category';
+import { getCategoryName } from '@/utils/mockService';
 
 // Auth
 const { userRole, isAdmin, isSeller } = useAuth()
@@ -380,14 +384,13 @@ const quantity = ref(1)
 const router = useRouter();
 const categories = ref([]);
 const selectedCategory = ref('');
-
+const total = ref(0);
 const totalPages = ref(0);  // 总页数
 const searchQuery = ref('');  // 用于搜索框的输入
 const sortBy = ref('newest');  // 默认排序方式
 const error = ref(null);  // 用于错误状态的处理
 const currentPage = ref(1);  // 当前页面，默认为第一页
 const pageSize = ref(10);  // 每页显示的产品数量
-
 const loadCategories = async () => {
   try {
     const response = await pageQuery({
@@ -646,7 +649,7 @@ const loadProducts = async () => {
     if (isSeller.value) {
       result = await pageQueryMerchant(authToken, queryParams);
     } else {
-      result = await pageQueryConsumer(queryParams);
+      result = await pageQuery(queryParams);
     }
     
     products.value = result.records;

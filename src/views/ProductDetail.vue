@@ -204,7 +204,7 @@ const loadProductDetails = async () => {
         categoryName.value = categoryResponse.records[0].categoryName;
         
         // 加载相关产品
-        const relatedResponse = await pageQueryConsumer({
+        const relatedResponse = await pageQuery({
           page: 1,
           pageSize: 4,
           categoryId: product.value.categoryId,
