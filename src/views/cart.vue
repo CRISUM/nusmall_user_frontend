@@ -4,7 +4,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import { ServiceFacade } from '@/service/facade';
-import { StockLevel } from '@/components/StockLevel.vue';
+import StockLevel from '@/components/StockLevel.vue';
 import { useAuth } from '@/composables/useAuth';
 import { InventoryStatus } from '@/constants/cartTypes';
 

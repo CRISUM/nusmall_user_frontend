@@ -343,6 +343,7 @@ import { useRouter } from 'vue-router'
 import { addToCart as addToCartApi } from '@/service/cart'
 import { UserRoles } from '@/constants/authTypes'  
 import { useAuth } from '@/composables/useAuth'
+import StockLevel from '@/components/StockLevel.vue';
 
 import { 
   getAllProducts,
@@ -379,6 +380,13 @@ const quantity = ref(1)
 const router = useRouter();
 const categories = ref([]);
 const selectedCategory = ref('');
+
+const totalPages = ref(0);  // 总页数
+const searchQuery = ref('');  // 用于搜索框的输入
+const sortBy = ref('newest');  // 默认排序方式
+const error = ref(null);  // 用于错误状态的处理
+const currentPage = ref(1);  // 当前页面，默认为第一页
+const pageSize = ref(10);  // 每页显示的产品数量
 
 const loadCategories = async () => {
   try {

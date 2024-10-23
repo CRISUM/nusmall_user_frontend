@@ -1,5 +1,4 @@
-// src/components/StockLevel.vue
-
+<!-- src/components/StockLevel.vue -->
 <template>
   <div class="stock-level" :class="stockLevelClass">
     <span class="stock-count">{{ stockText }}</span>
@@ -10,24 +9,15 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useStore } from 'vuex';
+import { getInventory } from '@/service/product';
 
-const stock = ref(0);
-const loading = ref(true);
+defineOptions({
+  name: 'StockLevel'
+});
 
-const checkStockStatus = async () => {
-  try {
-    const availableStock = await getInventory(null, props.productId);
-    stock.value = availableStock;
-  } catch (error) {
-    console.error('Failed to get stock status:', error);
-    stock.value = 0;
-  } finally {
-    loading.value = false;
-  }
-};
-
+// Props definition
 const props = defineProps({
   productId: {
     type: Number,
@@ -40,11 +30,31 @@ const props = defineProps({
   threshold: {
     type: Number,
     default: 10
+  },
+  autoUpdate: {
+    type: Boolean,
+    default: false
   }
 });
 
 const store = useStore();
+const stock = ref(0);
+const loading = ref(true);
 
+// Methods
+const checkStockStatus = async () => {
+  try {
+    const availableStock = await getInventory(null, props.productId);
+    stock.value = availableStock;
+  } catch (error) {
+    console.error('Failed to get stock status:', error);
+    stock.value = 0;
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Computed properties
 const stockLevelClass = computed(() => {
   if (stock.value <= 0) return 'out-of-stock';
   if (stock.value <= props.threshold) return 'low-stock';
@@ -68,11 +78,13 @@ const alertMessage = computed(() =>
   `Only ${stock.value} items left!`
 );
 
+// Lifecycle hooks
 let stockUpdateInterval;
+
 onMounted(() => {
   checkStockStatus();
   if (props.autoUpdate) {
-    stockUpdateInterval = setInterval(checkStockStatus, 30000); // 每30秒更新一次
+    stockUpdateInterval = setInterval(checkStockStatus, 30000); // Update every 30 seconds
   }
 });
 

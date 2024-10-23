@@ -15,6 +15,7 @@ nusmall_user_frontend
 │  ├─ App.vue
 │  ├─ assets
 │  │  └─ pic
+│  │     ├─ empty-cart.svg
 │  │     └─ useravatar.png
 │  ├─ common
 │  │  └─ style
@@ -29,6 +30,9 @@ nusmall_user_frontend
 │  │  ├─ ErrorMessage.vue
 │  │  ├─ ListScroll.vue
 │  │  ├─ NavBar.vue
+│  │  ├─ order
+│  │  │  ├─ OrderDetails.vue
+│  │  │  └─ OrderList.vue
 │  │  ├─ SimpleHeader.vue
 │  │  ├─ StockLevel.vue
 │  │  └─ Swiper.vue
@@ -45,8 +49,10 @@ nusmall_user_frontend
 │  │  └─ permissionGuard.js
 │  ├─ service
 │  │  ├─ cart.js
+│  │  ├─ category.js
 │  │  ├─ facade.js
 │  │  ├─ inventory.js
+│  │  ├─ order.js
 │  │  ├─ permission.js
 │  │  ├─ product.js
 │  │  ├─ stockCheck.js
@@ -63,6 +69,7 @@ nusmall_user_frontend
 │  │  └─ mockService.js
 │  └─ views
 │     ├─ cart.vue
+│     ├─ CategoryManagement.vue
 │     ├─ Forbidden.vue
 │     ├─ Home.vue
 │     ├─ InventoryManagement.vue

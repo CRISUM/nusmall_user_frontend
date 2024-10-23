@@ -1,5 +1,3 @@
-// src/utils/axios.js
-
 import axios from 'axios';
 import { handleApiResponse, handleApiError } from './apiResponseHandler';
 import { ENV, isUseMock } from './env';
@@ -24,12 +22,12 @@ instance.interceptors.request.use(
       config.headers['Authorization'] = `${ENV.TOKEN_PREFIX} ${token}`;
       config.headers['authToken'] = token;
     }
-    
+
     // Special handling for batch inventory operations
     if (config.url.includes('/inventory/batch')) {
       config.timeout = ENV.API_BATCH_TIMEOUT;
     }
-    
+
     return config;
   },
   error => Promise.reject(error)
@@ -54,4 +52,6 @@ instance.interceptors.response.use(
   }
 );
 
+// Export both default axios instance and named userService
+export const userService = instance;
 export default instance;

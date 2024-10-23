@@ -26,7 +26,7 @@
 import { reactive, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import SimpleHeader from '@/components/SimpleHeader.vue'
-import { login, register } from '@/service/user'
+import { getCurrentUserInfo, login, register } from '@/service/user'
 
 const router = useRouter()
 const showMessage = inject('showMessage')

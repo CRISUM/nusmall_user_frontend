@@ -252,12 +252,24 @@ export const login = async (credentials) => {
   await delay(500); // 模拟网络延迟
   const { users } = getStorageData();
   const user = users.find(u => u.username === credentials.username && u.password === credentials.password);
+  
   if (user) {
-    return { token: `mock-token-${user.id}`, user: { ...user, password: undefined } };
+    return {
+      success: true,
+      data: {
+        token: `mock-token-${user.id}`,
+        user: { ...user, password: undefined }
+      },
+      message: 'Login successful'
+    };
   } else {
-    throw new Error('Invalid credentials');
+    return {
+      success: false,
+      message: 'Invalid credentials'
+    };
   }
 };
+
 
 // 模拟注册
 export const register = async (userData) => {
@@ -703,6 +715,117 @@ export const validateToken = async (token) => {
   };
 };
 
+export const deleteInventory = async (productId) => {
+  await delay(500);
+  const data = JSON.parse(localStorage.getItem(INVENTORY_STORAGE_KEY));
+  const index = data.inventory.findIndex(i => i.productId === parseInt(productId));
+  if (index !== -1) {
+    data.inventory.splice(index, 1);
+  }
+  localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(data));
+  return { message: 'Inventory deleted successfully' };
+};
+
+export const deductStock = async (productId, quantity) => {
+  await delay(500);
+  const data = JSON.parse(localStorage.getItem(INVENTORY_STORAGE_KEY));
+  const item = data.inventory.find(i => i.productId === parseInt(productId));
+  if (item && item.availableStock >= quantity) {
+    item.availableStock -= quantity;
+    localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(data));
+    return true;
+  }
+  return false;
+};
+
+export const addStock = async (productId, quantity) => {
+  await delay(500);
+  const data = JSON.parse(localStorage.getItem(INVENTORY_STORAGE_KEY));
+  const item = data.inventory.find(i => i.productId === parseInt(productId));
+  if (item) {
+    item.availableStock += quantity;
+    localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(data));
+    return true;
+  }
+  return false;
+};
+
+export const addOrder = async (order) => {
+  await delay(500);
+  const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+  const newOrder = { ...order, orderId: Date.now() };
+  orders.push(newOrder);
+  localStorage.setItem('orders', JSON.stringify(orders));
+  return newOrder.orderId;
+};
+
+export const submitOrder = async (submitOrderParam) => {
+  await delay(500);
+  const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+  const newOrder = {
+    ...submitOrderParam,
+    orderId: Date.now(),
+    status: 'PENDING',
+    orderDate: new Date().toISOString()
+  };
+  orders.push(newOrder);
+  localStorage.setItem('orders', JSON.stringify(orders));
+  return newOrder.orderId;
+};
+
+export const paySuccess = async (orderId) => {
+  await delay(500);
+  const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+  const order = orders.find(o => o.orderId === orderId);
+  if (order) {
+    order.status = 'PAID';
+    localStorage.setItem('orders', JSON.stringify(orders));
+  }
+  return true;
+};
+
+export const updateItemQuantity = async (cartId, itemId, quantity) => {
+  await delay(500);
+  const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '{"cartItems": []}');
+  const item = cart.cartItems.find(i => i.cartItemId === itemId);
+  if (item) {
+    item.quantity = quantity;
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  }
+  return true;
+};
+
+export const updateItemSelected = async (cartId, itemId, isSelected) => {
+  await delay(500);
+  const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '{"cartItems": []}');
+  const item = cart.cartItems.find(i => i.cartItemId === itemId);
+  if (item) {
+    item.isSelected = isSelected;
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  }
+  return true;
+};
+
+export const getSelectedItems = async (cartId) => {
+  await delay(300);
+  const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '{"cartItems": []}');
+  return cart.cartItems.filter(item => item.isSelected);
+};
+
+export const removeSelectedItems = async (cartId) => {
+  await delay(500);
+  const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '{"cartItems": []}');
+  cart.cartItems = cart.cartItems.filter(item => !item.isSelected);
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  return true;
+};
+
+export const getOrderByUserId = async (userId) => {
+  await delay(300);
+  const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+  return orders.filter(order => order.userId === userId);
+};
+
 // 确保初始化执行
 initInventoryData();
 
@@ -711,3 +834,76 @@ initStorage();
 
 // 初始化存储
 initProductAndInventory();
+
+const CATEGORY_STORAGE_KEY = 'vue_category_management';
+
+// 初始化分类数据
+const initCategoryData = () => {
+  if (!localStorage.getItem(CATEGORY_STORAGE_KEY)) {
+    localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify({
+      categories: [
+        { categoryId: 1, categoryName: 'Electronics', description: 'Electronic items' },
+        { categoryId: 2, categoryName: 'Clothing', description: 'Clothing and apparel' },
+        { categoryId: 3, categoryName: 'Accessories', description: 'Fashion accessories' }
+      ]
+    }));
+  }
+};
+
+// 查询分类（分页）
+export const queryCategoryPage = async ({ page, pageSize }) => {
+  await delay(300);
+  const data = JSON.parse(localStorage.getItem(CATEGORY_STORAGE_KEY));
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize;
+  const paginatedCategories = data.categories.slice(start, end);
+
+  return {
+    records: paginatedCategories,
+    total: data.categories.length
+  };
+};
+
+// 添加分类
+export const saveCategory = async (categoryDTO) => {
+  await delay(500);
+  const data = JSON.parse(localStorage.getItem(CATEGORY_STORAGE_KEY));
+  const newCategory = {
+    ...categoryDTO,
+    categoryId: Math.max(...data.categories.map(c => c.categoryId), 0) + 1
+  };
+  data.categories.push(newCategory);
+  localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(data));
+  return newCategory;
+};
+
+// 删除分类
+export const deleteCategory = async (categoryId) => {
+  await delay(500);
+  const data = JSON.parse(localStorage.getItem(CATEGORY_STORAGE_KEY));
+  const index = data.categories.findIndex(c => c.categoryId === categoryId);
+  if (index !== -1) {
+    data.categories.splice(index, 1);
+    localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(data));
+    return { message: 'Category deleted successfully' };
+  } else {
+    throw new Error('Category not found');
+  }
+};
+
+// 更新分类
+export const updateCategory = async (categoryDTO) => {
+  await delay(500);
+  const data = JSON.parse(localStorage.getItem(CATEGORY_STORAGE_KEY));
+  const index = data.categories.findIndex(c => c.categoryId === categoryDTO.categoryId);
+  if (index !== -1) {
+    data.categories[index] = { ...data.categories[index], ...categoryDTO };
+    localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(data));
+    return data.categories[index];
+  } else {
+    throw new Error('Category not found');
+  }
+};
+
+// 初始化分类数据
+initCategoryData();

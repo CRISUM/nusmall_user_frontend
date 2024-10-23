@@ -9,7 +9,6 @@ import {
   getInventory, 
   updateInventory, 
   checkStock, 
-  getInventoryHistory 
 } from '@/service/inventory';
 import { getAllProducts, getProductsByMerchant } from '@/service/product';
 

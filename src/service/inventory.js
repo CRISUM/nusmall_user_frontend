@@ -161,3 +161,4 @@ export const updateInventory = isUseMock ? mockService.updateInventory : invento
 export const checkStock = isUseMock ? mockService.checkStock : inventoryApi.checkStock;
 export const deductStock = isUseMock ? mockService.deductStock : inventoryApi.deductStock;
 export const addStock = isUseMock ? mockService.addStock : inventoryApi.addStock;
+export const getInventory = isUseMock ? mockService.getInventory : inventoryApi.getInventoryStatus;

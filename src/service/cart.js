@@ -108,3 +108,6 @@ export const addToCart = isUseMock ? mockService.addToCart : cartApi.addToCart;
 export const updateItemQuantity = isUseMock ? mockService.updateItemQuantity : cartApi.updateItemQuantity;
 export const removeItemFromCart = isUseMock ? mockService.deleteCartItem : cartApi.removeItemFromCart;
 export const clearCart = isUseMock ? mockService.clearCart : cartApi.clearCart;
+export const updateItemSelected = isUseMock ? mockService.updateItemSelected : cartApi.updateItemSelected;
+export const getSelectedItems = isUseMock ? mockService.getSelectedItems : cartApi.getSelectedItems;  
+export const removeSelectedItems = isUseMock ? mockService.removeSelectedItems : cartApi.removeSelectedItems;
