@@ -1,6 +1,7 @@
 
 ```
 nusmall_user_frontend
+├─ .env
 ├─ .git
 ├─ .gitignore
 ├─ index.html
@@ -27,6 +28,8 @@ nusmall_user_frontend
 │  │  ├─ SimpleHeader.vue
 │  │  ├─ StockLevel.vue
 │  │  └─ Swiper.vue
+│  ├─ composables
+│  │  └─ useAuth.js
 │  ├─ config
 │  │  └─ index.js
 │  ├─ constants
@@ -49,6 +52,7 @@ nusmall_user_frontend
 │  ├─ utils
 │  │  ├─ apiResponseHandler.js
 │  │  ├─ axios.js
+│  │  ├─ env.js
 │  │  └─ mockService.js
 │  └─ views
 │     ├─ cart.vue
