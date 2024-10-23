@@ -93,11 +93,11 @@
             </div>
   
             <button 
-              @click="addToCart"
+              @click="handleAddToCart"
               class="add-to-cart-btn"
-              :disabled="!product.availableStock || isAddingToCart"
+              :disabled="!product?.availableStock"
             >
-              {{ addToCartButtonText }}
+              {{ product?.availableStock ? 'Add to Cart' : 'Out of Stock' }}
             </button>
           </div>
   
@@ -154,21 +154,22 @@
   
   <script setup>
   import { ref, computed, onMounted, watch } from 'vue';
-  import { useRoute, useRouter } from 'vue-router';
-  import { useStore } from 'vuex';
+  import { useRouter, useRoute } from 'vue-router';
+  import StockLevel from '@/components/StockLevel.vue';
   import { getProductById } from '@/service/product';
-  import { addToCart as addToCartApi } from '@/service/cart';
-  import { getInventory } from '@/service/product';
-  
+  import { getInventory, checkStock } from '@/service/inventory';
+  import { addToCart as addToCartService } from '@/service/cart';  // 重命名导入的函数
+
   const route = useRoute();
   const router = useRouter();
   const store = useStore();
-  
   const product = ref(null);
   const loading = ref(true);
   const quantity = ref(1);
   const relatedProducts = ref([]);
   const categoryName = ref('');
+  const error = ref(null);
+  const showSuccessModal = ref(false);
   
   const userRole = computed(() => {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -176,51 +177,51 @@
   });
 
   
-const loadProductDetails = async () => {
-  try {
-    loading.value = true;
-    const productId = parseInt(route.params.id);
-    
-    // 加载商品信息
-    const [productData, stock] = await Promise.all([
-      getProductById(productId),
-      getInventory(authToken, productId)
-    ]);
-
-    product.value = {
-      ...productData,
-      availableStock: stock
-    };
-
-    // 加载分类信息
-    if (product.value.categoryId) {
-      const categoryResponse = await pageQuery({
-        page: 1,
-        pageSize: 1,
-        categoryId: product.value.categoryId
-      });
+  const loadProductDetails = async () => {
+    try {
+      loading.value = true;
+      const productId = parseInt(route.params.id);
       
-      if (categoryResponse.records.length > 0) {
-        categoryName.value = categoryResponse.records[0].categoryName;
-        
-        // 加载相关产品
-        const relatedResponse = await pageQuery({
+      // 加载商品信息
+      const [productData, stock] = await Promise.all([
+        getProductById(productId),
+        getInventory(authToken, productId)
+      ]);
+
+      product.value = {
+        ...productData,
+        availableStock: stock
+      };
+
+      // 加载分类信息
+      if (product.value.categoryId) {
+        const categoryResponse = await pageQuery({
           page: 1,
-          pageSize: 4,
-          categoryId: product.value.categoryId,
-          excludeProductId: productId
+          pageSize: 1,
+          categoryId: product.value.categoryId
         });
         
-        relatedProducts.value = relatedResponse.records;
+        if (categoryResponse.records.length > 0) {
+          categoryName.value = categoryResponse.records[0].categoryName;
+          
+          // 加载相关产品
+          const relatedResponse = await pageQuery({
+            page: 1,
+            pageSize: 4,
+            categoryId: product.value.categoryId,
+            excludeProductId: productId
+          });
+          
+          relatedProducts.value = relatedResponse.records;
+        }
       }
+    } catch (error) {
+      console.error('Failed to load product details:', error);
+      error.value = error.message;
+    } finally {
+      loading.value = false;
     }
-  } catch (error) {
-    console.error('Failed to load product details:', error);
-    error.value = error.message;
-  } finally {
-    loading.value = false;
-  }
-};
+  };
 
   
   const formatKey = (key) => {
@@ -238,33 +239,31 @@ const loadProductDetails = async () => {
   };
   
   const loadProduct = async () => {
-  try {
-    loading.value = true;
-    const productId = parseInt(route.params.id);
-    const [productData, stock] = await Promise.all([
-      getProductById(productId),
-      query(productId)  // 使用后端库存服务的 query 方法
-    ]);
-    
-    product.value = {
-      ...productData,
-      availableStock: stock
-    };
-
-    // 加载产品图片
-    if (productData.productImages) {
-      productImages.value = productData.productImages.map(img => img.imageUrl);
+    try {
+      loading.value = true;
+      error.value = null;
+      const productId = parseInt(route.params.id);
+      
+      const [productData, stock] = await Promise.all([
+        getProductById(productId),
+        getInventory(null, productId)  // 使用正确的函数
+      ]);
+      
+      if (!productData) {
+        throw new Error('Product not found');
+      }
+      
+      product.value = {
+        ...productData,
+        availableStock: stock
+      };
+    } catch (err) {
+      console.error('Failed to load product:', err);
+      error.value = err.message;
+    } finally {
+      loading.value = false;
     }
-    
-    // 初始化购买数量
-    quantity.value = stock > 0 ? 1 : 0;
-  } catch (error) {
-    console.error('Failed to load product:', error);
-    error.value = error.message;
-  } finally {
-    loading.value = false;
-  }
-};
+  };
   
   const decreaseQuantity = () => {
     if (quantity.value > 1) {
@@ -279,43 +278,78 @@ const loadProductDetails = async () => {
   };
   
   const addToCart = async () => {
-  try {
-    // 再次检查库存
-    const stockAvailable = await checkStock(
-      product.value.productId,
-      quantity.value
-    );
-    
-    if (!stockAvailable) {
-      throw new Error('Insufficient stock');
+    try {
+      // 再次检查库存
+      const stockAvailable = await checkStock(
+        product.value.productId,
+        quantity.value
+      );
+      
+      if (!stockAvailable) {
+        throw new Error('Insufficient stock');
+      }
+
+      // 构造购物车项数据
+      const cartItem = {
+        productId: product.value.productId,
+        quantity: quantity.value,
+        price: product.value.price,
+        isSelected: true
+      };
+
+      await addToCart(cartItem);
+      await store.dispatch('cart/fetchCartItems');
+      
+      // 重新加载商品信息以获取最新库存
+      await loadProduct();
+      
+      alert('Added to cart successfully');
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      alert(error.message || 'Failed to add to cart');
     }
+  };
 
-    // 构造购物车项数据
-    const cartItem = {
-      productId: product.value.productId,
-      quantity: quantity.value,
-      price: product.value.price,
-      isSelected: true
-    };
+  const handleAddToCart = async () => {  // 重命名本地函数
+    try {
+      // 再次检查库存
+      const stockAvailable = await checkStock(
+        product.value.productId,
+        quantity.value
+      );
+      
+      if (!stockAvailable) {
+        throw new Error('Insufficient stock');
+      }
 
-    await addToCart(cartItem);
-    await store.dispatch('cart/fetchCartItems');
-    
-    // 重新加载商品信息以获取最新库存
-    await loadProduct();
-    
-    alert('Added to cart successfully');
-  } catch (error) {
-    console.error('Failed to add to cart:', error);
-    alert(error.message || 'Failed to add to cart');
-  }
-};
+      // 构造购物车项数据
+      const cartItem = {
+        productId: product.value.productId,
+        quantity: quantity.value,
+        price: product.value.price,
+        isSelected: true,
+        name: product.value.name,
+        imageUrl: product.value.imageUrl
+      };
+
+      await addToCartService(cartItem);  // 使用重命名后的导入函数
+      
+      // 重新加载商品信息以获取最新库存
+      await loadProduct();
+      
+      showSuccessModal.value = true;
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      error.value = error.message || 'Failed to add to cart';
+    }
+  };
   
   // 监听路由参数变化，重新加载商品信息
-  watch(
-    () => route.params.id,
-    () => loadProduct()
-  );
+  watch(() => route.params.id, (newId) => {
+    if (newId) {
+      loadProduct();
+    }
+  });
   
   // 初始化
   onMounted(() => {

@@ -437,27 +437,35 @@ const initProductAndInventory = () => {
   }
 };
 
-// 产品相关操作
 export const getAllProducts = async () => {
   await delay(300);
   const { products } = JSON.parse(localStorage.getItem(PRODUCT_STORAGE_KEY) || '{"products": []}');
   const { inventory } = JSON.parse(localStorage.getItem(INVENTORY_STORAGE_KEY) || '{"inventory": []}');
   
-  return products.map(product => {
-    const stockInfo = inventory.find(item => item.productId === product.id);
-    return {
+  return {
+    records: products.map(product => ({
       ...product,
-      availableStock: stockInfo ? stockInfo.availableStock : 0
-    };
-  });
+      productId: product.id,  // Ensure productId exists
+      availableStock: inventory.find(item => item.productId === product.id)?.availableStock || 0
+    })),
+    total: products.length
+  };
 };
 
-// Only show products for the seller's own items
 export const getProductsByMerchant = async (authToken) => {
   await delay(300);
   const { products } = JSON.parse(localStorage.getItem(PRODUCT_STORAGE_KEY));
   const userData = parseToken(authToken);
-  return products.filter(p => p.sellerId === userData.id);
+  const merchantProducts = products.filter(p => p.sellerId === userData.id);
+  
+  return {
+    records: merchantProducts.map(product => ({
+      ...product,
+      productId: product.id,  // Ensure productId exists
+      availableStock: 0  // Default value
+    })),
+    total: merchantProducts.length
+  };
 };
 
 // mockService.js
@@ -567,12 +575,17 @@ const checkProductData = () => {
 // 获取单个产品详情
 export const getProductById = async (id) => {
   await delay(300);
-  const { products } = JSON.parse(localStorage.getItem(PRODUCT_STORAGE_KEY));
-  const product = products.find(p => p.id === parseInt(id));
+  const { products } = JSON.parse(localStorage.getItem(PRODUCT_STORAGE_KEY) || '{"products": []}');
+  const product = products.find(p => p.productId === parseInt(id) || p.id === parseInt(id));
+  
   if (!product) {
     throw new Error('Product not found');
   }
-  return product;
+  
+  return {
+    ...product,
+    productId: product.productId || product.id  // 确保始终有 productId
+  };
 };
 
 // 上传图片

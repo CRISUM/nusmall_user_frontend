@@ -12,6 +12,7 @@ import { ref, onMounted, provide, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import Navbar from '@/components/Navbar.vue';
 import ErrorMessage from '@/components/ErrorMessage.vue';
+import { onErrorCaptured } from 'vue';
 
 const errorMessage = ref(null);
 const route = useRoute();
@@ -25,6 +26,11 @@ onMounted(() => {
   if (errorMessage.value) {
     provide('showMessage', errorMessage.value.showMessage);
   }
+});
+
+onErrorCaptured((err, instance, info) => {
+  console.error('Error captured:', err, info);
+  return false; // 阻止错误继续向上传播
 });
 </script>
 

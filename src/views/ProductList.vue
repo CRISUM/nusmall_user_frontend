@@ -68,80 +68,83 @@
   
       <!-- Products Grid -->
       <div v-else class="products-grid">
-        <div 
-          v-for="product in filteredProducts" 
-          :key="product.productId" 
-          class="product-card"
-        >
-          <!-- Product Image -->
-          <div class="product-image" @click="goToDetail(product.productId)">
-            <img :src="product.imageUrl" :alt="product.name">
-            <div v-if="!product.availableStock" class="out-of-stock-overlay">
-              Out of Stock
-            </div>
+    <div 
+      v-for="product in filteredProducts" 
+      :key="product?.productId || Math.random()" 
+      class="product-card"
+    >
+      <!-- Product Image -->
+      <div class="product-image" @click="goToDetail(product?.productId)">
+        <img :src="product?.imageUrl || '/api/placeholder/400/320'" :alt="product?.name">
+        <div v-if="!product?.availableStock" class="out-of-stock-overlay">
+          Out of Stock
+        </div>
+      </div>
+
+      <!-- Product Info -->
+      <div class="product-info">
+        <h3 @click="goToDetail(product?.productId)" class="product-title">
+          {{ product?.name }}
+        </h3>
+        <p class="description">{{ product?.description }}</p>
+        <p class="category">
+          Category: 
+          <span @click="filterByCategory(product?.categoryId)">
+            {{ getCategoryName(product?.categoryId) }}
+          </span>
+        </p>
+        <p class="price">¥{{ product?.price ? Number(product.price).toFixed(2) : 'N/A' }}</p>
+
+        <!-- Stock Level - Add default value -->
+        <StockLevel 
+          :productId="Number(product?.productId) || 0"
+          :showCount="userRole !== 'CUSTOMER'"
+        />
+
+        <!-- Actions -->
+        <div class="product-actions">
+          <!-- Customer Actions -->
+          <div v-if="userRole === 'CUSTOMER'" class="customer-actions">
+            <button 
+              class="add-to-cart-btn" 
+              @click="showAddToCartModal(product)"
+              :disabled="!product?.availableStock"
+            >
+              {{ product?.availableStock ? 'Add to Cart' : 'Out of Stock' }}
+            </button>
           </div>
-  
-          <!-- Product Info -->
-          <div class="product-info">
-            <h3 @click="goToDetail(product.productId)" class="product-title">
-              {{ product.name }}
-            </h3>
-            <p class="description">{{ product.description }}</p>
-            <p class="category">
-              Category: 
-              <span @click="filterByCategory(product.categoryId)">
-                {{ getCategoryName(product.categoryId) }}
-              </span>
-            </p>
-            <p class="price">¥{{ product.price ? product.price.toFixed(2) : 'N/A' }}</p>
-  
-            <!-- Stock Level -->
-            <StockLevel 
-              :productId="product.productId" 
-              :showCount="userRole !== 'CUSTOMER'"
-            />
-  
-            <!-- Actions -->
-            <div class="product-actions">
-              <!-- Customer Actions -->
-              <div v-if="userRole === 'CUSTOMER'" class="customer-actions">
-                <button 
-                  class="add-to-cart-btn" 
-                  @click="showAddToCartModal(product)"
-                  :disabled="!product.availableStock"
-                >
-                  {{ product.availableStock ? 'Add to Cart' : 'Out of Stock' }}
-                </button>
-              </div>
-  
-              <!-- Seller/Admin Actions -->
-              <div v-else class="management-actions">
-                <button 
-                  class="edit-btn" 
-                  @click="editProduct(product)"
-                  title="Edit product"
-                >
-                  <i class="edit-icon"></i>
-                </button>
-                <button 
-                  class="manage-stock-btn"
-                  @click="manageInventory(product)"
-                  title="Manage inventory"
-                >
-                  <i class="inventory-icon"></i>
-                </button>
-                <button 
-                  class="delete-btn"
-                  @click="confirmDelete(product)"
-                  title="Delete product"
-                >
-                  <i class="delete-icon"></i>
-                </button>
-              </div>
-            </div>
+
+          <!-- Seller/Admin Actions -->
+          <div v-else class="management-actions">
+            <button 
+              class="edit-btn" 
+              @click="editProduct(product)"
+              :disabled="!product?.productId"
+              title="Edit product"
+            >
+              <i class="edit-icon"></i>
+            </button>
+            <button 
+              class="manage-stock-btn"
+              @click="manageInventory(product)"
+              :disabled="!product?.productId"
+              title="Manage inventory"
+            >
+              <i class="inventory-icon"></i>
+            </button>
+            <button 
+              class="delete-btn"
+              @click="confirmDelete(product)"
+              :disabled="!product?.productId"
+              title="Delete product"
+            >
+              <i class="delete-icon"></i>
+            </button>
           </div>
         </div>
       </div>
+    </div>
+  </div>
   
       <!-- Pagination -->
       <div v-if="products.length > 0" class="pagination">
@@ -425,7 +428,9 @@ const filteredProducts = computed(() => {
 
 
 const goToDetail = (productId) => {
-  router.push(`/api/product/${productId}`);
+  if (productId) {
+    router.push(`/api/product/${productId}`);
+  }
 };
 
 const productForm = ref({
@@ -652,7 +657,10 @@ const loadProducts = async () => {
       result = await pageQuery(queryParams);
     }
     
-    products.value = result.records;
+    products.value = result.records.map(product => ({
+      ...product,
+      productId: product.productId || product.id || 0  // Ensure productId exists
+    }));
     total.value = result.total;
   } catch (error) {
     console.error('Failed to load products:', error);

@@ -1,127 +1,126 @@
-<!-- src/components/StockLevel.vue -->
-<template>
-  <div class="stock-level" :class="stockLevelClass">
-    <span class="stock-count">{{ stockText }}</span>
-    <div v-if="showAlert" class="stock-alert">
-      {{ alertMessage }}
-    </div>
-  </div>
-</template>
-
+// src/components/StockLevel.vue
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';  // 添加 watch 导入
 import { useStore } from 'vuex';
-import { getInventory } from '@/service/product';
+import { getInventory } from '@/service/inventory';
 
-defineOptions({
-  name: 'StockLevel'
-});
-
-// Props definition
+const store = useStore();
 const props = defineProps({
   productId: {
     type: Number,
-    required: true
+    required: true,
+    default: 0
   },
   showCount: {
     type: Boolean,
-    default: true
+    default: false
   },
   threshold: {
     type: Number,
     default: 10
-  },
-  autoUpdate: {
-    type: Boolean,
-    default: false
   }
 });
 
-const store = useStore();
-const stock = ref(0);
-const loading = ref(true);
+const stockCount = ref(0);
+const loading = ref(false);
+const error = ref(null);
 
-// Methods
-const checkStockStatus = async () => {
+const stockStatus = computed(() => {
+  if (loading.value) return 'Loading...';
+  if (error.value) return 'Error';
+  
+  if (stockCount.value <= 0) return 'Out of Stock';
+  if (stockCount.value <= props.threshold) return 'Low Stock';
+  return 'In Stock';
+});
+
+const fetchStock = async () => {
+  // Skip fetching if productId is invalid
+  if (!props.productId) {
+    stockCount.value = 0;
+    return;
+  }
+  
   try {
-    const availableStock = await getInventory(null, props.productId);
-    stock.value = availableStock;
-  } catch (error) {
-    console.error('Failed to get stock status:', error);
-    stock.value = 0;
+    loading.value = true;
+    error.value = null;
+    const stock = await getInventory(null, props.productId);
+    stockCount.value = stock;
+  } catch (err) {
+    console.error('Failed to get stock:', err);
+    error.value = err.message;
+    stockCount.value = 0;
   } finally {
     loading.value = false;
   }
 };
 
-// Computed properties
-const stockLevelClass = computed(() => {
-  if (stock.value <= 0) return 'out-of-stock';
-  if (stock.value <= props.threshold) return 'low-stock';
-  return 'in-stock';
-});
-
-const stockText = computed(() => {
-  if (!props.showCount) {
-    if (stock.value <= 0) return 'Out of Stock';
-    if (stock.value <= props.threshold) return 'Low Stock';
-    return 'In Stock';
+// Watch for changes in productId
+watch(() => props.productId, (newId, oldId) => {
+  if (newId !== oldId && newId) {
+    fetchStock();
   }
-  return `${stock.value} in stock`;
-});
+}, { immediate: true }); // Add immediate:true to fetch on mount
 
-const showAlert = computed(() => 
-  stock.value <= props.threshold && stock.value > 0
-);
-
-const alertMessage = computed(() => 
-  `Only ${stock.value} items left!`
-);
-
-// Lifecycle hooks
-let stockUpdateInterval;
-
-onMounted(() => {
-  checkStockStatus();
-  if (props.autoUpdate) {
-    stockUpdateInterval = setInterval(checkStockStatus, 30000); // Update every 30 seconds
-  }
-});
-
-onUnmounted(() => {
-  if (stockUpdateInterval) {
-    clearInterval(stockUpdateInterval);
-  }
-});
 </script>
+
+<template>
+  <div class="stock-level" :class="{ 'is-loading': loading }">
+    <span 
+      :class="[
+        'stock-status',
+        {
+          'out-of-stock': stockCount <= 0,
+          'low-stock': stockCount > 0 && stockCount <= threshold,
+          'in-stock': stockCount > threshold
+        }
+      ]"
+    >
+      {{ stockStatus }}
+      <template v-if="showCount && !loading && !error">
+        ({{ stockCount }} available)
+      </template>
+    </span>
+    <div v-if="error" class="error-message">
+      {{ error }}
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .stock-level {
-  display: inline-flex;
-  align-items: center;
+  margin: 8px 0;
+}
+
+.stock-level.is-loading {
+  opacity: 0.7;
+}
+
+.stock-status {
+  display: inline-block;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.9em;
 }
 
-.in-stock {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-.low-stock {
-  background-color: #fff3e0;
-  color: #e65100;
-}
-
-.out-of-stock {
-  background-color: #ffebee;
+.stock-status.out-of-stock {
+  background: #ffebee;
   color: #c62828;
 }
 
-.stock-alert {
-  margin-left: 8px;
+.stock-status.low-stock {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.stock-status.in-stock {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.error-message {
+  color: #c62828;
   font-size: 0.8em;
-  color: #e65100;
+  margin-top: 4px;
 }
 </style>
