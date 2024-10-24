@@ -17,10 +17,10 @@ const categoryApi = {
   async save(authToken, categoryDTO) {
     try {
       // TODO: Uncomment when backend is ready
-      // await userService.post('/api/categories', categoryDTO, {
-      //   headers: { authToken }
-      // });
-      return mockService.saveCategory(categoryDTO);
+      await userService.post('/api/categories', categoryDTO, {
+        headers: { authToken }
+      });
+      //return mockService.saveCategory(categoryDTO);
     } catch (error) {
       console.error('Failed to save category:', error);
       throw error;
@@ -36,11 +36,11 @@ const categoryApi = {
   async pageQuery(categoryPageQueryDTO) {
     try {
       // TODO: Uncomment when backend is ready
-      // const response = await userService.get('/api/categories', {
-      //   params: categoryPageQueryDTO
-      // });
-      // return response.data;
-      return mockService.queryCategoryPage(categoryPageQueryDTO);
+      const response = await userService.get('/api/categories', {
+        params: categoryPageQueryDTO
+      });
+      return response.data;
+      //return mockService.queryCategoryPage(categoryPageQueryDTO);
     } catch (error) {
       console.error('Failed to query categories:', error);
       throw error;
@@ -55,8 +55,8 @@ const categoryApi = {
   async deleteById(id) {
     try {
       // TODO: Uncomment when backend is ready
-      // await userService.delete(`/api/categories/${id}`);
-      return mockService.deleteCategory(id);
+      await userService.delete(`/api/categories/${id}`);
+      //return mockService.deleteCategory(id);
     } catch (error) {
       console.error('Failed to delete category:', error);
       throw error;
@@ -72,10 +72,10 @@ const categoryApi = {
   async update(authToken, categoryDTO) {
     try {
       // TODO: Uncomment when backend is ready
-      // await userService.put('/api/categories', categoryDTO, {
-      //   headers: { authToken }
-      // });
-      return mockService.updateCategory(categoryDTO);
+      await userService.put('/api/categories', categoryDTO, {
+        headers: { authToken }
+      });
+      //return mockService.updateCategory(categoryDTO);
     } catch (error) {
       console.error('Failed to update category:', error);
       throw error;

@@ -1,0 +1,19 @@
+version: '3'
+services:
+  frontend:
+    build: .
+    ports:
+      - "80:80"
+    networks:
+      - nusmall-network
+    # depends_on:
+    #   - product-service
+    #   - order-service
+    #   - inventory-service
+    #   - user-service
+    #   - auth-service
+    #   - cart-service
+
+networks:
+  nusmall-network:
+    driver: bridge

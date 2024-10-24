@@ -18,13 +18,13 @@ const inventoryApi = {
   async addInventory(authToken, productId, availableStock) {
     try {
       // TODO: Uncomment when backend is ready
-      // const response = await userService.post('/api/inventory', {
-      //   productId,
-      //   availableStock
-      // }, {
-      //   headers: { authToken }
-      // });
-      const response = await mockService.updateInventory(productId, availableStock);
+      const response = await userService.post('/api/inventory', {
+        productId,
+        availableStock
+      }, {
+        headers: { authToken }
+      });
+      //const response = await mockService.updateInventory(productId, availableStock);
       return response;
     } catch (error) {
       console.error('Failed to add inventory:', error);
@@ -40,8 +40,8 @@ const inventoryApi = {
   async getInventoryStatus(productId) {
     try {
       // TODO: Uncomment when backend is ready
-      // const response = await userService.get(`/api/inventory/query/${productId}`);
-      const response = await mockService.getInventory(null, productId);
+      const response = await userService.get(`/api/inventory/query/${productId}`);
+      //const response = await mockService.getInventory(null, productId);
       return response;
     } catch (error) {
       console.error('Failed to get inventory status:', error);
@@ -57,8 +57,8 @@ const inventoryApi = {
   async deleteInventory(productId) {
     try {
       // TODO: Uncomment when backend is ready
-      // await userService.delete(`/api/inventory/${productId}`);
-      await mockService.deleteInventory(productId);
+      await userService.delete(`/api/inventory/${productId}`);
+      //await mockService.deleteInventory(productId);
       return true;
     } catch (error) {
       console.error('Failed to delete inventory:', error);
@@ -76,13 +76,13 @@ const inventoryApi = {
   async updateInventory(authToken, productId, availableStock) {
     try {
       // TODO: Uncomment when backend is ready
-      // const response = await userService.put('/api/inventory', {
-      //   productId,
-      //   availableStock
-      // }, {
-      //   headers: { authToken }
-      // });
-      const response = await mockService.updateInventory(productId, availableStock);
+      const response = await userService.put('/api/inventory', {
+        productId,
+        availableStock
+      }, {
+        headers: { authToken }
+      });
+      //const response = await mockService.updateInventory(productId, availableStock);
       return response;
     } catch (error) {
       console.error('Failed to update inventory:', error);
@@ -99,10 +99,10 @@ const inventoryApi = {
   async checkStock(productId, quantity) {
     try {
       // TODO: Uncomment when backend is ready
-      // const response = await userService.get('/api/inventory/check', {
-      //   params: { productId, quantity }
-      // });
-      const response = await mockService.checkStock(productId, quantity);
+      const response = await userService.get('/api/inventory/check', {
+        params: { productId, quantity }
+      });
+      //const response = await mockService.checkStock(productId, quantity);
       return response;
     } catch (error) {
       console.error('Failed to check stock:', error);
@@ -119,11 +119,11 @@ const inventoryApi = {
   async deductStock(productId, quantity) {
     try {
       // TODO: Uncomment when backend is ready
-      // const response = await userService.post('/api/inventory/deduct', {
-      //   productId,
-      //   quantity
-      // });
-      const response = await mockService.deductStock(productId, quantity);
+      const response = await userService.post('/api/inventory/deduct', {
+        productId,
+        quantity
+      });
+      //const response = await mockService.deductStock(productId, quantity);
       return response;
     } catch (error) {
       console.error('Failed to deduct stock:', error);
@@ -140,11 +140,11 @@ const inventoryApi = {
   async addStock(productId, quantity) {
     try {
       // TODO: Uncomment when backend is ready
-      // const response = await userService.post('/api/inventory/add', {
-      //   productId,
-      //   quantity
-      // });
-      const response = await mockService.addStock(productId, quantity);
+      const response = await userService.post('/api/inventory/add', {
+        productId,
+        quantity
+      });
+      //const response = await mockService.addStock(productId, quantity);
       return response;
     } catch (error) {
       console.error('Failed to add stock:', error);

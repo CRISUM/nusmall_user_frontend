@@ -48,20 +48,18 @@ const apiPermissionService = {
   async checkPermission(url, method) {
     const cacheKey = getCacheKey(url, method);
     
-    // Check cache first
     if (permissionCache.has(cacheKey)) {
       return permissionCache.get(cacheKey);
     }
 
     try {
-      const response = await axios.get('/permission', {
+      const response = await userService.get('/permission', {
         params: {
           url,
           method
         }
       });
 
-      // Cache the result
       permissionCache.set(cacheKey, response);
       
       return response;
@@ -76,7 +74,7 @@ const apiPermissionService = {
       const token = localStorage.getItem('token');
       if (!token) return false;
 
-      const response = await axios.post('/validateToken', { token });
+      const response = await userService.post('/validateToken', { token });
       return response;
     } catch (error) {
       console.error('Token validation failed:', error);
@@ -88,6 +86,7 @@ const apiPermissionService = {
     permissionCache.clear();
   }
 };
+
 // Export the appropriate service based on environment
 export const permissionService = ENV_CONFIG.USE_MOCK ? mockPermissionService : apiPermissionService;
 

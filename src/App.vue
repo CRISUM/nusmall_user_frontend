@@ -10,7 +10,7 @@
 <script setup>
 import { ref, onMounted, provide, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import Navbar from '@/components/Navbar.vue';
+import Navbar from '@/components/NavBar.vue';
 import ErrorMessage from '@/components/ErrorMessage.vue';
 import { onErrorCaptured } from 'vue';
 

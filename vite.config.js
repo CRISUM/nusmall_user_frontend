@@ -9,10 +9,35 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
-  server: {
-    port: 5173,
-  },
   define: {
     'process.env': {}
   },
+  server: {
+    proxy: {
+      '/api/product': {
+        target: 'http://nusmall.com:8081',
+        changeOrigin: true
+      },
+      '/api/order': {
+        target: 'http://nusmall.com:8082',
+        changeOrigin: true
+      },
+      '/api/inventory': {
+        target: 'http://nusmall.com:8083',
+        changeOrigin: true
+      },
+      '/api/user': {
+        target: 'http://nusmall.com:8084',
+        changeOrigin: true
+      },
+      '/api/auth': {
+        target: 'http://nusmall.com:8085',
+        changeOrigin: true
+      },
+      '/api/cart': {
+        target: 'http://nusmall.com:8086',
+        changeOrigin: true
+      }
+    }
+  }
 })

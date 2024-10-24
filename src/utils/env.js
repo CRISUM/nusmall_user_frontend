@@ -18,10 +18,18 @@ export const ENV = {
     // Auth configuration 
     TOKEN_KEY: 'token',
     USER_KEY: 'user',
-    TOKEN_PREFIX: 'Bearer'
+    TOKEN_PREFIX: 'Bearer',
+
+      // Add new service URLs
+    PRODUCT_SERVICE_URL: import.meta.env.VITE_APP_PRODUCT_SERVICE_URL || 'http://nusmall.com:8081',
+    ORDER_SERVICE_URL: import.meta.env.VITE_APP_ORDER_SERVICE_URL || 'http://nusmall.com:8082',
+    INVENTORY_SERVICE_URL: import.meta.env.VITE_APP_INVENTORY_SERVICE_URL || 'http://nusmall.com:8083',
+    USER_SERVICE_URL: import.meta.env.VITE_APP_USER_SERVICE_URL || 'http://nusmall.com:8084',
+    AUTH_SERVICE_URL: import.meta.env.VITE_APP_AUTH_SERVICE_URL || 'http://nusmall.com:8085',
+    CART_SERVICE_URL: import.meta.env.VITE_APP_CART_SERVICE_URL || 'http://nusmall.com:8086'
   };
   
   // Helper functions for environment checks
   export const isDevelopment = () => ENV.NODE_ENV === 'development';
   export const isProduction = () => ENV.NODE_ENV === 'production';
-  export const isUseMock = () => ENV.USE_MOCK;
+  export const isUseMock = () => ENV.USE_MOCK === false;

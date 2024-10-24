@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "A Vue 3 based user management system for e-commerce",
   "scripts": {
-    "dev": "vite --mode development",
-    "build": "vite build --mode production",
+    "dev": "vite",
+    "build": "vite build",
+    "build:prod": "vite build --mode production",
     "preview": "vite preview"
   },
   "dependencies": {
