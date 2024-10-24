@@ -1,5 +1,5 @@
 // src/service/category.js
-import { userService } from '@/utils/axios';
+import { categoryService } from '@/utils/axios';
 import * as mockService from '@/utils/mockService';
 import { isUseMock } from '@/utils/env';
 
@@ -17,7 +17,7 @@ const categoryApi = {
   async save(authToken, categoryDTO) {
     try {
       // TODO: Uncomment when backend is ready
-      await userService.post('/api/categories', categoryDTO, {
+      await categoryService.post('/api/categories', categoryDTO, {
         headers: { authToken }
       });
       //return mockService.saveCategory(categoryDTO);
@@ -36,7 +36,8 @@ const categoryApi = {
   async pageQuery(categoryPageQueryDTO) {
     try {
       // TODO: Uncomment when backend is ready
-      const response = await userService.get('/api/categories', {
+      console.log('Categories API request made from:', new Error().stack);
+      const response = await categoryService.get('/api/categories', {
         params: categoryPageQueryDTO
       });
       return response.data;
@@ -55,7 +56,7 @@ const categoryApi = {
   async deleteById(id) {
     try {
       // TODO: Uncomment when backend is ready
-      await userService.delete(`/api/categories/${id}`);
+      await categoryService.delete(`/api/categories/${id}`);
       //return mockService.deleteCategory(id);
     } catch (error) {
       console.error('Failed to delete category:', error);
@@ -72,7 +73,7 @@ const categoryApi = {
   async update(authToken, categoryDTO) {
     try {
       // TODO: Uncomment when backend is ready
-      await userService.put('/api/categories', categoryDTO, {
+      await categoryService.put('/api/categories', categoryDTO, {
         headers: { authToken }
       });
       //return mockService.updateCategory(categoryDTO);

@@ -14,6 +14,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/api': {
+        target: 'http://localhost:8084',  // 代理后端服务器
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      },
       '/api/product': {
         target: 'http://nusmall.com:8081',
         changeOrigin: true

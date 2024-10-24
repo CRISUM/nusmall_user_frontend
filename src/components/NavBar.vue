@@ -147,7 +147,10 @@ const loadCategories = async () => {
 };
 
 onMounted(() => {
-  loadCategories();
+  if (userRole.value) {
+    // 只有用户登录后才加载类别数据
+    loadCategories();
+  }
 });
 </script>
 

@@ -69,6 +69,10 @@ export const cartService = baseInstance.create({
   baseURL: ENV.CART_SERVICE_URL
 });
 
+export const categoryService = baseInstance.create({
+  baseURL: ENV.INVENTORY_SERVICE_URL  // 确保这个 URL 是指向正确的类别管理后端
+});
+
 // Export default instance for backward compatibility
 export default baseInstance;
 
