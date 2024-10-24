@@ -15,6 +15,7 @@ const instance = axios.create({
 });
 
 const baseInstance = axios.create({
+  baseURL: ENV.API_BASE_URL,
   timeout: ENV.API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json'
@@ -34,6 +35,15 @@ baseInstance.interceptors.request.use(
 );
 
 baseInstance.interceptors.response.use(
+  config => {
+    console.log('Request config before sending:', config);  // 打印请求配置
+    const token = localStorage.getItem(ENV.TOKEN_KEY);
+    if (token) {
+      config.headers['Authorization'] = `${ENV.TOKEN_PREFIX} ${token}`;
+      config.headers['authToken'] = token;
+    }
+    return config;
+  },
   response => handleApiResponse(response.data),
   error => Promise.reject(handleApiError(error))
 );

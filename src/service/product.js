@@ -109,16 +109,16 @@ const productApi = {
 
 // Export all services using environment check
 const services = {
-  getAllProducts: isUseMock ? mockService.getAllProducts : productApi.getAllProducts,
-  getProductsByMerchant: isUseMock ? mockService.getProductsByMerchant : productApi.getProductsByMerchant,
-  getProductById: isUseMock ? mockService.getProductById : productApi.getProductById,
-  createProduct: isUseMock ? mockService.createProduct : productApi.createProduct,
-  updateProduct: isUseMock ? mockService.updateProduct : productApi.updateProduct,
-  deleteProduct: isUseMock ? mockService.deleteProduct : productApi.deleteProduct,
-  getInventory: isUseMock ? mockService.getInventory : productApi.getInventory,
-  updateInventory: isUseMock ? mockService.updateInventory : productApi.updateInventory,
-  checkStock: isUseMock ? mockService.checkStock : productApi.checkStock,
-  uploadImage: isUseMock ? mockService.uploadImage : productApi.uploadImage
+  getAllProducts: isUseMock() ? mockService.getAllProducts : productApi.getAllProducts,
+  getProductsByMerchant: isUseMock() ? mockService.getProductsByMerchant : productApi.getProductsByMerchant,
+  getProductById: isUseMock() ? mockService.getProductById : productApi.getProductById,
+  createProduct: isUseMock() ? mockService.createProduct : productApi.createProduct,
+  updateProduct: isUseMock() ? mockService.updateProduct : productApi.updateProduct,
+  deleteProduct: isUseMock() ? mockService.deleteProduct : productApi.deleteProduct,
+  getInventory: isUseMock() ? mockService.getInventory : productApi.getInventory,
+  updateInventory: isUseMock() ? mockService.updateInventory : productApi.updateInventory,
+  checkStock: isUseMock() ? mockService.checkStock : productApi.checkStock,
+  uploadImage: isUseMock() ? mockService.uploadImage : productApi.uploadImage
 };
 
 // Export all services

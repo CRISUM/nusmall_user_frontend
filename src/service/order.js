@@ -80,10 +80,10 @@ const orderApi = {
 };
 
 // Export services based on environment configuration
-export const addOrder = isUseMock ? mockService.addOrder : orderApi.addOrder;
-export const getOrderByUserId = isUseMock ? mockService.getOrderByUserId : orderApi.getOrderByUserId;
-export const submitOrder = isUseMock ? mockService.submitOrder : orderApi.submitOrder;
-export const paySuccess = isUseMock ? mockService.paySuccess : orderApi.paySuccess;
+export const addOrder = isUseMock() ? mockService.addOrder : orderApi.addOrder;
+export const getOrderByUserId = isUseMock() ? mockService.getOrderByUserId : orderApi.getOrderByUserId;
+export const submitOrder = isUseMock() ? mockService.submitOrder : orderApi.submitOrder;
+export const paySuccess = isUseMock() ? mockService.paySuccess : orderApi.paySuccess;
 
 // Type definitions for TypeScript support
 /**

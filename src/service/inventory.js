@@ -154,11 +154,11 @@ const inventoryApi = {
 };
 
 // Export services based on environment configuration
-export const addInventory = isUseMock ? mockService.updateInventory : inventoryApi.addInventory;
-export const getInventoryStatus = isUseMock ? mockService.getInventory : inventoryApi.getInventoryStatus;
-export const deleteInventory = isUseMock ? mockService.deleteInventory : inventoryApi.deleteInventory;
-export const updateInventory = isUseMock ? mockService.updateInventory : inventoryApi.updateInventory;
-export const checkStock = isUseMock ? mockService.checkStock : inventoryApi.checkStock;
-export const deductStock = isUseMock ? mockService.deductStock : inventoryApi.deductStock;
-export const addStock = isUseMock ? mockService.addStock : inventoryApi.addStock;
-export const getInventory = isUseMock ? mockService.getInventory : inventoryApi.getInventoryStatus;
+export const addInventory = isUseMock() ? mockService.updateInventory : inventoryApi.addInventory;
+export const getInventoryStatus = isUseMock() ? mockService.getInventory : inventoryApi.getInventoryStatus;
+export const deleteInventory = isUseMock() ? mockService.deleteInventory : inventoryApi.deleteInventory;
+export const updateInventory = isUseMock() ? mockService.updateInventory : inventoryApi.updateInventory;
+export const checkStock = isUseMock() ? mockService.checkStock : inventoryApi.checkStock;
+export const deductStock = isUseMock() ? mockService.deductStock : inventoryApi.deductStock;
+export const addStock = isUseMock() ? mockService.addStock : inventoryApi.addStock;
+export const getInventory = isUseMock() ? mockService.getInventory : inventoryApi.getInventoryStatus;

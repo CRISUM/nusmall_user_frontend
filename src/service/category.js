@@ -84,10 +84,10 @@ const categoryApi = {
 };
 
 // Export services based on environment configuration
-export const saveCategory = isUseMock ? mockService.saveCategory : categoryApi.save;
-export const pageQuery = isUseMock ? mockService.queryCategoryPage : categoryApi.pageQuery;
-export const deleteCategory = isUseMock ? mockService.deleteCategory : categoryApi.deleteById;
-export const updateCategory = isUseMock ? mockService.updateCategory : categoryApi.update;
+export const saveCategory = isUseMock() ? mockService.saveCategory : categoryApi.save;
+export const pageQuery = isUseMock() ? mockService.queryCategoryPage : categoryApi.pageQuery;
+export const deleteCategory = isUseMock() ? mockService.deleteCategory : categoryApi.deleteById;
+export const updateCategory = isUseMock() ? mockService.updateCategory : categoryApi.update;
 
 // Type definitions for TypeScript support
 /**

@@ -162,12 +162,14 @@ const cartApi = {
   }
 };
 
+console.log('isUseMock:', isUseMock);
+
 // Export based on environment
-export const getCart = isUseMock ? mockService.getCart : cartApi.getCart;
-export const addToCart = isUseMock ? mockService.addToCart : cartApi.addToCart;
-export const updateItemQuantity = isUseMock ? mockService.updateItemQuantity : cartApi.updateItemQuantity;
-export const updateItemSelected = isUseMock ? mockService.updateItemSelected : cartApi.updateItemSelected;
-export const getSelectedItems = isUseMock ? mockService.getSelectedItems : cartApi.getSelectedItems;
-export const removeItemFromCart = isUseMock ? mockService.deleteCartItem : cartApi.removeItemFromCart;
-export const removeSelectedItems = isUseMock ? mockService.removeSelectedItems : cartApi.removeSelectedItems;
-export const clearCart = isUseMock ? mockService.clearCart : cartApi.clearCart;
+export const getCart = isUseMock() ? mockService.getCart : cartApi.getCart;
+export const addToCart = isUseMock() ? mockService.addToCart : cartApi.addToCart;
+export const updateItemQuantity = isUseMock() ? mockService.updateItemQuantity : cartApi.updateItemQuantity;
+export const updateItemSelected = isUseMock() ? mockService.updateItemSelected : cartApi.updateItemSelected;
+export const getSelectedItems = isUseMock() ? mockService.getSelectedItems : cartApi.getSelectedItems;
+export const removeItemFromCart = isUseMock() ? mockService.deleteCartItem : cartApi.removeItemFromCart;
+export const removeSelectedItems = isUseMock() ? mockService.removeSelectedItems : cartApi.removeSelectedItems;
+export const clearCart = isUseMock() ? mockService.clearCart : cartApi.clearCart;
