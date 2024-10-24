@@ -1,4 +1,5 @@
 // src/service/cart.js
+
 import { userService } from '@/utils/axios';
 import * as mockService from '@/utils/mockService';
 import { isUseMock } from '@/utils/env';
@@ -8,17 +9,17 @@ import { isUseMock } from '@/utils/env';
  */
 const cartApi = {
   /**
-   * Get or create cart for user
+   * Get cart for user
    * @returns {Promise<Cart>}
    */
   async getCart() {
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      // Currently using mock service
-      // TODO: Uncomment when backend is ready
-      // const response = await userService.get(`/api/cart/user/${user.id}`);
-      const response = await mockService.getCart();
-      return response;
+      // TODO: Implement when backend is ready
+      // const response = await userService.get('/api/v1/cart/items', {
+      //   headers: { authToken: localStorage.getItem('token') }
+      // });
+      // return response;
+      return mockService.getCart();
     } catch (error) {
       console.error('Failed to get cart:', error);
       throw error;
@@ -27,23 +28,22 @@ const cartApi = {
 
   /**
    * Add item to cart
-   * Backend endpoint: POST /api/cart/{cartId}/items
+   * @param {number} productId
+   * @param {number} quantity
+   * @param {number} price
    */
   async addToCart(productId, quantity, price) {
     try {
-      const cart = await this.getCart();
-      // TODO: Uncomment when backend is ready
-      // const response = await userService.post(`/api/cart/${cart.cartId}/items`, {
+      // TODO: Implement when backend is ready
+      // const response = await userService.post('/api/v1/cart/add-item', {
       //   productId,
       //   quantity,
       //   price
+      // }, {
+      //   headers: { authToken: localStorage.getItem('token') }
       // });
-      const response = await mockService.addToCart({
-        productId,
-        quantity,
-        price
-      });
-      return response;
+      // return response;
+      return mockService.addToCart({ productId, quantity, price });
     } catch (error) {
       console.error('Failed to add item to cart:', error);
       throw error;
@@ -52,17 +52,20 @@ const cartApi = {
 
   /**
    * Update item quantity
-   * Backend endpoint: PUT /api/cart/{cartId}/items/{cartItemId}
+   * @param {number} cartItemId
+   * @param {number} quantity
    */
-  async updateItemQuantity(cartId, cartItemId, quantity) {
+  async updateItemQuantity(cartItemId, quantity) {
     try {
-      // TODO: Uncomment when backend is ready
-      // const response = await userService.put(
-      //   `/api/cart/${cartId}/items/${cartItemId}`,
-      //   { quantity }
-      // );
-      const response = await mockService.updateItemQuantity(cartId, cartItemId, quantity);
-      return response;
+      // TODO: Implement when backend is ready
+      // const response = await userService.put('/api/v1/cart/update-item-quantity', {
+      //   cartItemId,
+      //   quantity
+      // }, {
+      //   headers: { authToken: localStorage.getItem('token') }
+      // });
+      // return response;
+      return mockService.updateItemQuantity(cartItemId, quantity);
     } catch (error) {
       console.error('Failed to update cart item:', error);
       throw error;
@@ -70,13 +73,52 @@ const cartApi = {
   },
 
   /**
-   * Remove item from cart
-   * Backend endpoint: DELETE /api/cart/{cartId}/items/{cartItemId}
+   * Update item selection status
+   * @param {number} cartItemId 
+   * @param {boolean} isSelected
    */
-  async removeItemFromCart(cartId, cartItemId) {
+  async updateItemSelected(cartItemId, isSelected) {
     try {
-      // TODO: Uncomment when backend is ready
-      // await userService.delete(`/api/cart/${cartId}/items/${cartItemId}`);
+      // TODO: Implement when backend is ready
+      // const response = await userService.put('/api/v1/cart/update-item-selected', null, {
+      //   headers: { authToken: localStorage.getItem('token') },
+      //   params: { cartItemId, isSelected }
+      // });
+      // return response;
+      return mockService.updateItemSelected(cartItemId, isSelected);
+    } catch (error) {
+      console.error('Failed to update item selection:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get selected items from cart
+   */
+  async getSelectedItems() {
+    try {
+      // TODO: Implement when backend is ready
+      // const response = await userService.get('/api/v1/cart/selected-items', {
+      //   headers: { authToken: localStorage.getItem('token') }
+      // });
+      // return response;
+      return mockService.getSelectedItems();
+    } catch (error) {
+      console.error('Failed to get selected items:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Remove item from cart
+   * @param {number} cartItemId
+   */
+  async removeItemFromCart(cartItemId) {
+    try {
+      // TODO: Implement when backend is ready
+      // await userService.delete(`/api/v1/cart/remove-item/${cartItemId}`, {
+      //   headers: { authToken: localStorage.getItem('token') }
+      // });
       await mockService.deleteCartItem(cartItemId);
       return true;
     } catch (error) {
@@ -86,13 +128,31 @@ const cartApi = {
   },
 
   /**
-   * Clear cart
-   * Backend endpoint: DELETE /api/cart/{cartId}
+   * Remove selected items from cart
    */
-  async clearCart(cartId) {
+  async removeSelectedItems() {
     try {
-      // TODO: Uncomment when backend is ready
-      // await userService.delete(`/api/cart/${cartId}`);
+      // TODO: Implement when backend is ready
+      // await userService.delete('/api/v1/cart/remove-selected-items', {
+      //   headers: { authToken: localStorage.getItem('token') }
+      // });
+      await mockService.removeSelectedItems();
+      return true;
+    } catch (error) {
+      console.error('Failed to remove selected items:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Clear cart
+   */
+  async clearCart() {
+    try {
+      // TODO: Implement when backend is ready
+      // await userService.delete('/api/v1/cart/clear', {
+      //   headers: { authToken: localStorage.getItem('token') }
+      // });
       await mockService.clearCart();
       return true;
     } catch (error) {
@@ -106,8 +166,8 @@ const cartApi = {
 export const getCart = isUseMock ? mockService.getCart : cartApi.getCart;
 export const addToCart = isUseMock ? mockService.addToCart : cartApi.addToCart;
 export const updateItemQuantity = isUseMock ? mockService.updateItemQuantity : cartApi.updateItemQuantity;
-export const removeItemFromCart = isUseMock ? mockService.deleteCartItem : cartApi.removeItemFromCart;
-export const clearCart = isUseMock ? mockService.clearCart : cartApi.clearCart;
 export const updateItemSelected = isUseMock ? mockService.updateItemSelected : cartApi.updateItemSelected;
-export const getSelectedItems = isUseMock ? mockService.getSelectedItems : cartApi.getSelectedItems;  
+export const getSelectedItems = isUseMock ? mockService.getSelectedItems : cartApi.getSelectedItems;
+export const removeItemFromCart = isUseMock ? mockService.deleteCartItem : cartApi.removeItemFromCart;
 export const removeSelectedItems = isUseMock ? mockService.removeSelectedItems : cartApi.removeSelectedItems;
+export const clearCart = isUseMock ? mockService.clearCart : cartApi.clearCart;

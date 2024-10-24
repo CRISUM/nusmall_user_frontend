@@ -25,9 +25,72 @@ const itemToDelete = ref(null);
 const cart = computed(() => store.state.cart.cart);
 const cartItems = computed(() => store.state.cart.cartItems || []);
 const selectedItems = computed(() => store.state.cart.selectedItems);
-const cartTotal = computed(() => store.getters['cart/cartTotal']);
-const selectedTotal = computed(() => store.getters['cart/selectedItemsTotal']);
 const hasSelectedItems = computed(() => store.getters['cart/hasSelectedItems']);
+const cartTotal = computed(() => {
+  return cartItems.value.reduce((total, item) => {
+    const itemPrice = Number(item.price) || 0;
+    const itemQuantity = Number(item.quantity) || 0;
+    return total + (itemPrice * itemQuantity);
+  }, 0);
+});
+const selectedTotal = computed(() => {
+  return selectedItems.value.reduce((total, item) => {
+    const itemPrice = Number(item.price) || 0;
+    const itemQuantity = Number(item.quantity) || 0;
+    return total + (itemPrice * itemQuantity);
+  }, 0);
+});
+
+// Helper functions
+const formatPrice = (price) => {
+  // Add null check and default value
+  if (price === null || price === undefined) {
+    return '0.00';
+  }
+  return Number(price).toFixed(2);
+};
+
+// Add data validation when adding to cart
+const handleAddToCart = async () => {
+  if (!product.value) return;
+  
+  try {
+    // Validate product data
+    const cartItem = {
+      productId: product.value.productId,
+      quantity: quantity.value || 1,
+      price: Number(product.value.price) || 0,
+      name: product.value.name || 'Unnamed Product',
+      imageUrl: product.value.imageUrl || '/api/placeholder/400/320',
+      isSelected: true
+    };
+
+    await addToCartService(cartItem);
+    await store.dispatch('cart/fetchCartItems');
+    
+    showSuccessModal.value = true;
+  } catch (err) {
+    error.value = err.message || 'Failed to add to cart';
+  }
+};
+
+// Add validation when fetching cart items
+const loadCartItems = async () => {
+  try {
+    await store.dispatch('cart/initializeCart');
+    // Validate each cart item
+    cartItems.value = cartItems.value.map(item => ({
+      ...item,
+      price: Number(item.price) || 0,
+      quantity: Number(item.quantity) || 1,
+      name: item.name || 'Unnamed Product',
+      imageUrl: item.imageUrl || '/api/placeholder/400/320'
+    }));
+  } catch (error) {
+    console.error('Failed to load cart items:', error);
+    errorMessage.value = error.message;
+  }
+};
 
 /**
  * Toggle item selection
@@ -231,8 +294,8 @@ onMounted(async () => {
               <img :src="item.imageUrl" :alt="item.name" class="item-image">
               
               <div class="item-info">
-                <h3>{{ item.name }}</h3>
-                <p class="price">¥{{ item.price.toFixed(2) }}</p>
+                <h3>{{ item.name || 'Unnamed Product' }}</h3>
+                <p class="price">¥{{ formatPrice(item.price) }}</p>
                 
                 <div class="quantity-control">
                   <button @click="updateQuantity(item.cartItemId, item.quantity - 1)"
@@ -250,7 +313,7 @@ onMounted(async () => {
                 <StockLevel :productId="item.productId" />
                 
                 <p class="subtotal">
-                  Subtotal: <span>¥{{ (item.price * item.quantity).toFixed(2) }}</span>
+                  Subtotal: <span>¥{{ formatPrice(item.price * (item.quantity || 1)) }}</span>
                 </p>
               </div>
 
@@ -272,7 +335,7 @@ onMounted(async () => {
             </div>
             <div class="summary-row">
               <span>Selected Total:</span>
-              <span class="total">¥{{ selectedTotal.toFixed(2) }}</span>
+              <span class="total">¥{{ formatPrice(selectedTotal) }}</span>
             </div>
           </div>
 

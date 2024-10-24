@@ -1,32 +1,58 @@
 // src/store/cart.js
 import { getCart, updateItemQuantity, removeItemFromCart, clearCart, 
     updateItemSelected, getSelectedItems, removeSelectedItems } from '@/service/cart';
+import { addToCart as addToCartService } from '@/service/cart';
   
   const state = {
-    cart: null,
+    cart: {
+      cartId: null,
+      userId: null,
+      cartItems: []
+    },
     cartItems: [],
-    selectedItems: [], // New field for selected items
+    selectedItems: [],
     loading: false,
     error: null,
     hasChanges: false
   };
+    
   
   const mutations = {
     SET_CART(state, cart) {
-      state.cart = cart;
+      state.cart = cart || {
+        cartId: Date.now(), // Generate temporary cartId if none exists
+        userId: null,
+        cartItems: []
+      };
     },
     SET_CART_ITEMS(state, items) {
-      state.cartItems = items;
+      // Ensure items is always an array
+      state.cartItems = Array.isArray(items) ? items : [];
+      // Also update cart object
+      if (state.cart) {
+        state.cart.cartItems = state.cartItems;
+      }
     },
     SET_SELECTED_ITEMS(state, items) {
-      state.selectedItems = items;
-    },
+      state.selectedItems = Array.isArray(items) ? items : [];
+    },  
     UPDATE_ITEM_QUANTITY(state, { cartItemId, quantity }) {
       const item = state.cartItems.find(item => item.cartItemId === cartItemId);
       if (item) {
         item.quantity = quantity;
         state.hasChanges = true;
       }
+    },
+    ADD_CART_ITEM(state, item) {
+      const existingItem = state.cartItems.find(i => i.productId === item.productId);
+      if (existingItem) {
+        existingItem.quantity += item.quantity;
+      } else {
+        state.cartItems.push(item);
+      }
+      // Also update cart object
+      state.cart.cartItems = state.cartItems;
+      state.hasChanges = true;
     },
     UPDATE_ITEM_SELECTED(state, { cartItemId, isSelected }) {
       const item = state.cartItems.find(item => item.cartItemId === cartItemId);
@@ -54,9 +80,43 @@ import { getCart, updateItemQuantity, removeItemFromCart, clearCart,
     async initializeCart({ commit }) {
       commit('SET_LOADING', true);
       try {
-        const cart = await getCart();
+        const cartData = await getCart();
+        
+        // Ensure we have a valid cart structure
+        const cart = {
+          cartId: cartData?.cartId || Date.now(),
+          userId: cartData?.userId || null,
+          cartItems: Array.isArray(cartData?.cartItems) ? cartData.cartItems : []
+        };
+        
         commit('SET_CART', cart);
         commit('SET_CART_ITEMS', cart.cartItems);
+        
+        // Update selected items - ensure we're working with an array
+        const selectedItems = Array.isArray(cart.cartItems) 
+          ? cart.cartItems.filter(item => item.isSelected)
+          : [];
+        commit('SET_SELECTED_ITEMS', selectedItems);
+      } catch (error) {
+        console.error('Failed to initialize cart:', error);
+        // Initialize with empty cart on error
+        commit('SET_CART', {
+          cartId: Date.now(),
+          userId: null,
+          cartItems: []
+        });
+        commit('SET_CART_ITEMS', []);
+        commit('SET_SELECTED_ITEMS', []);
+        commit('SET_ERROR', error.message);
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+    async addToCart({ commit, dispatch }, cartItem) {
+      commit('SET_LOADING', true);
+      try {
+        await addToCartService(cartItem);
+        await dispatch('initializeCart'); // Refresh cart data
       } catch (error) {
         commit('SET_ERROR', error.message);
         throw error;
@@ -64,7 +124,6 @@ import { getCart, updateItemQuantity, removeItemFromCart, clearCart,
         commit('SET_LOADING', false);
       }
     },
-
     async fetchCartItems({ commit }) {
       try {
         const items = await getCart();
@@ -149,16 +208,32 @@ import { getCart, updateItemQuantity, removeItemFromCart, clearCart,
   const getters = {
     cartTotal: state => {
       return state.cartItems.reduce((total, item) => {
-        return total + (item.quantity * item.price);
+        const price = Number(item.price) || 0;
+        const quantity = Number(item.quantity) || 0;
+        return total + (price * quantity);
       }, 0);
     },
+    
     selectedItemsTotal: state => {
       return state.selectedItems.reduce((total, item) => {
-        return total + (item.quantity * item.price);
+        const price = Number(item.price) || 0;
+        const quantity = Number(item.quantity) || 0;
+        return total + (price * quantity);
       }, 0);
     },
-    hasSelectedItems: state => state.selectedItems.length > 0,
-    cartItemCount: state => state.cartItems.length
+    
+    cartItemCount: state => state.cartItems.length,
+    
+    getCartItemById: state => productId => {
+      return state.cartItems.find(item => item.productId === productId);
+    },
+
+    getCartItemQuantity: (state) => (productId) => {
+      // Ensure we're working with an array
+      const items = Array.isArray(state.cartItems) ? state.cartItems : [];
+      const item = items.find(item => item.productId === productId);
+      return item ? item.quantity : 0;
+    },
   };
   
   export default {

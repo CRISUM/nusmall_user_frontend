@@ -172,42 +172,96 @@ export const resetMockData = () => {
   initStorage();
 };
 
-// 获取购物车数据
 const getCartData = () => {
-  const data = localStorage.getItem(CART_STORAGE_KEY);
-  return JSON.parse(data || '{"cartItems": []}');
+  try {
+    const data = localStorage.getItem(CART_STORAGE_KEY);
+    if (data) {
+      const parsedData = JSON.parse(data);
+      return {
+        cartId: parsedData.cartId || Date.now(),
+        userId: parsedData.userId || null,
+        cartItems: Array.isArray(parsedData.cartItems) ? parsedData.cartItems : []
+      };
+    }
+  } catch (error) {
+    console.error('Error parsing cart data:', error);
+  }
+  // Return default structure if anything goes wrong
+  return {
+    cartId: Date.now(),
+    userId: null,
+    cartItems: []
+  };
 };
 
-// 更新购物车存储
 const updateCartData = (data) => {
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(data));
+  try {
+    const cartData = {
+      cartId: data.cartId || Date.now(),
+      userId: data.userId || null,
+      cartItems: Array.isArray(data.cartItems) ? data.cartItems : []
+    };
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartData));
+  } catch (error) {
+    console.error('Error updating cart data:', error);
+  }
 };
 
 // 获取购物车
 export const getCart = async () => {
   await delay(300);
   const data = getCartData();
-  return data.cartItems;
+  return {
+    cartId: data.cartId || Date.now(),
+    userId: data.userId || null,
+    cartItems: Array.isArray(data.cartItems) ? data.cartItems : []
+  };
 };
 
 // 添加到购物车
-export const addToCart = async (newItem) => {
+export const addToCart = async (cartItem) => {
   await delay(300);
   const data = getCartData();
+  
+  const newCartItem = {
+    cartItemId: Date.now(),
+    productId: cartItem.productId,
+    quantity: Number(cartItem.quantity) || 1,
+    price: Number(cartItem.price) || 0,
+    name: cartItem.name || 'Unnamed Product',
+    imageUrl: cartItem.imageUrl || '/api/placeholder/400/320',
+    isSelected: true,
+    createDatetime: new Date().toISOString(),
+    updateDatetime: new Date().toISOString(),
+    createUser: cartItem.createUser || 'system',
+    updateUser: cartItem.updateUser || 'system'
+  };
+
+  // Ensure cartItems is an array
+  if (!Array.isArray(data.cartItems)) {
+    data.cartItems = [];
+  }
+
+  // Find existing item
   const existingItemIndex = data.cartItems.findIndex(
-    item => item.cartItemId === newItem.cartItemId
+    item => item.productId === cartItem.productId
   );
 
   if (existingItemIndex !== -1) {
     // Update existing item
-    data.cartItems[existingItemIndex].goodsCount = newItem.goodsCount;
+    data.cartItems[existingItemIndex] = {
+      ...data.cartItems[existingItemIndex],
+      quantity: cartItem.quantity,
+      updateDatetime: new Date().toISOString(),
+      updateUser: cartItem.updateUser || 'system'
+    };
   } else {
     // Add new item
-    data.cartItems.push(newItem);
+    data.cartItems.push(newCartItem);
   }
-  
+
   updateCartData(data);
-  return newItem;
+  return newCartItem;
 };
 
 // 修改购物车
@@ -800,13 +854,16 @@ export const paySuccess = async (orderId) => {
   return true;
 };
 
-export const updateItemQuantity = async (cartId, itemId, quantity) => {
-  await delay(500);
-  const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '{"cartItems": []}');
-  const item = cart.cartItems.find(i => i.cartItemId === itemId);
+export const updateItemQuantity = async (cartId, cartItemId, quantity) => {
+  await delay(300);
+  const data = getCartData();
+  const items = Array.isArray(data.cartItems) ? data.cartItems : [];
+  const item = items.find(i => i.cartItemId === cartItemId);
+  
   if (item) {
     item.quantity = quantity;
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    item.updateDatetime = new Date().toISOString();
+    updateCartData(data);
   }
   return true;
 };

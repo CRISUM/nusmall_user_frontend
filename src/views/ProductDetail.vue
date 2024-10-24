@@ -97,7 +97,7 @@
             class="add-to-cart-btn"
             :disabled="!product?.availableStock"
           >
-            {{ product?.availableStock ? 'Add to Cart' : 'Out of Stock' }}
+            {{ addToCartButtonText }}
           </button>
         </div>
 
@@ -155,11 +155,14 @@
   <script setup>
   import { ref, computed, onMounted, watch } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
-  import StockLevel from '@/components/StockLevel.vue';
-  import { getProductById } from '@/service/product';
-  import { getInventory, checkStock } from '@/service/inventory';
+  import { useStore } from 'vuex';
   import { addToCart as addToCartService } from '@/service/cart';
-  import store from '@/store';
+  import StockLevel from '@/components/StockLevel.vue';
+  import { useAuth } from '@/composables/useAuth';
+  import { checkStock } from '@/service/inventory';
+
+  const store = useStore();
+  const { user } = useAuth();
 
   const route = useRoute();
   const router = useRouter();
@@ -233,7 +236,17 @@
     }
   };
 
+  const addToCartButtonText = computed(() => {
+    if (!product.value?.availableStock) return 'Out of Stock';
+    const quantity = cartQuantity.value;
+    return quantity > 0 ? `In Cart (${quantity})` : 'Add to Cart';
+  });
   
+  const cartQuantity = computed(() => {
+    if (!product.value?.productId) return 0;
+    return store.getters['cart/getCartItemQuantity'](product.value.productId);
+  });
+
   const formatKey = (key) => {
     return key
       .split(/(?=[A-Z])/)
@@ -364,31 +377,36 @@
   };
 
   const handleAddToCart = async () => {
+    if (!product.value) return;
+    
     try {
-      if (!product.value) return;
-
-      // 检查库存
-      const stockAvailable = await checkStock(product.value.productId, quantity.value);
+      const stockAvailable = await checkStock(
+        product.value.productId,
+        quantity.value
+      );
+      
       if (!stockAvailable) {
         throw new Error('Insufficient stock');
       }
 
-      // 构造购物车项
+      const currentUser = user.value || JSON.parse(localStorage.getItem('user')) || {};
+
       const cartItem = {
         productId: product.value.productId,
         quantity: quantity.value,
         price: product.value.price,
         name: product.value.name,
         imageUrl: product.value.imageUrl,
-        isSelected: true
+        isSelected: true,
+        createUser: currentUser.username || 'system',
+        updateUser: currentUser.username || 'system'
       };
 
-      await addToCartService(cartItem);
-      await store.dispatch('cart/fetchCartItems');
-      
-      showSuccessModal.value = true;
-    } catch (err) {
-      error.value = err.message || 'Failed to add to cart';
+      await store.dispatch('cart/addToCart', cartItem);
+      alert('Added to cart successfully!');
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      alert(error.message || 'Failed to add to cart');
     }
   };
 
@@ -402,6 +420,15 @@
       loadProduct();
     }
   });
+
+  watch(() => product.value, (newProduct) => {
+    if (newProduct?.productId) {
+      const existingQuantity = store.getters['cart/getCartItemQuantity'](newProduct.productId);
+      if (existingQuantity > 0) {
+        quantity.value = existingQuantity;
+      }
+    }
+  }, { immediate: true });
   
   // 初始化
   onMounted(() => {

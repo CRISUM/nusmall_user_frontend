@@ -108,9 +108,9 @@
             <button 
               class="add-to-cart-btn" 
               @click="showAddToCartModal(product)"
-              :disabled="!product?.availableStock"
+              :disabled="!product.availableStock"
             >
-              {{ product?.availableStock ? 'Add to Cart' : 'Out of Stock' }}
+              {{ getCartButtonText(product) }}
             </button>
           </div>
 
@@ -342,7 +342,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { addToCart as addToCartApi } from '@/service/cart'
 import { UserRoles } from '@/constants/authTypes'  
 import { useAuth } from '@/composables/useAuth'
 import StockLevel from '@/components/StockLevel.vue';
@@ -371,6 +370,7 @@ const { userRole, isAdmin, isSeller } = useAuth()
 const store = useStore()
 const route = useRoute();
 const router = useRouter();
+const { user } = useAuth();
 
 // State
 const relatedProducts = ref([]); // 初始化为空数组
@@ -475,10 +475,12 @@ const getAddToCartButtonText = (product) => {
 }
 
 const showAddToCartModal = (product) => {
-  selectedProduct.value = product
-  quantity.value = 1
-  showCartModal.value = true
-}
+  selectedProduct.value = product;
+  // Set initial quantity based on what's already in cart
+  const cartQuantity = store.getters['cart/getCartItemQuantity'](product.productId);
+  quantity.value = cartQuantity > 0 ? cartQuantity : 1;
+  showCartModal.value = true;
+};
 
 const closeCartModal = () => {
   showCartModal.value = false
@@ -500,24 +502,35 @@ const confirmAddToCart = async () => {
   if (!selectedProduct.value) return;
   
   try {
+    // Check stock availability
+    const stockAvailable = await checkStock(
+      selectedProduct.value.productId, 
+      quantity.value
+    );
+    
+    if (!stockAvailable) {
+      throw new Error('Insufficient stock');
+    }
+
+    const currentUser = user.value || JSON.parse(localStorage.getItem('user')) || {};
+
     const cartItem = {
-      cartItemId: selectedProduct.value.id,
-      goodsName: selectedProduct.value.name,
-      goodsCount: quantity.value,
-      sellingPrice: selectedProduct.value.price,
-      goodsCoverImg: selectedProduct.value.imageUrl
+      productId: selectedProduct.value.productId,
+      quantity: quantity.value,
+      price: selectedProduct.value.price,
+      name: selectedProduct.value.name,
+      imageUrl: selectedProduct.value.imageUrl,
+      isSelected: true,
+      createUser: currentUser.username || 'system',
+      updateUser: currentUser.username || 'system'
     };
 
-    // 使用 addToCartApi 添加到购物车
-    await addToCartApi(cartItem);
-    
-    // 更新 Vuex store 中的购物车数据
-    await store.dispatch('cart/fetchCartItems');
-    
-    closeCartModal();
+    await store.dispatch('cart/addToCart', cartItem);
+    showCartModal.value = false;
+    alert('Added to cart successfully!');
   } catch (error) {
     console.error('Failed to add to cart:', error);
-    alert(error.message || 'Failed to add item to cart');
+    alert(error.message || 'Failed to add to cart');
   }
 };
 
@@ -570,6 +583,15 @@ const closeModal = () => {
     imageUrl: '/api/placeholder/400/320'
   }
 }
+
+// Add computed property for cart status
+const getCartButtonText = computed(() => (product) => {
+  const quantity = store.getters['cart/getCartItemQuantity'](product.productId);
+  if (!product.availableStock) {
+    return 'Out of Stock';
+  }
+  return quantity > 0 ? `In Cart (${quantity})` : 'Add to Cart';
+});
 
 // Methods for inventory management
 const manageInventory = async (product) => {
