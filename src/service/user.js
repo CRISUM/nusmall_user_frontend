@@ -2,6 +2,7 @@
 import axios from '@/utils/axios';
 import * as mockService from '@/utils/mockService';
 import { isUseMock } from '@/utils/axios';
+import { userService } from '../utils/axios';
 
 console.log('Is using mock data:', isUseMock());
 
@@ -14,47 +15,49 @@ if (isUseMock()) {
 // Real API implementations
 const apiService = {
   login: async (credentials) => {
-    const response = await axios.post('/login', credentials);
+    console.log('Sending POST request with credentials:', credentials);
+    const response = await userService.post('/login', credentials);
+    console.log('Response from POST request:', response);
     return response;
   },
 
   register: async (userData) => {
-    const response = await axios.post('/api/user', userData);
+    const response = await userService.post('/api/user', userData);
     return response;
   },
 
   getAllUsers: async () => {
-    const response = await axios.get('/api/user');
+    const response = await userService.get('/api/user');
     return response;
   },
 
   getUserById: async (id) => {
-    const response = await axios.get(`/api/user/${id}`);
+    const response = await userService.get(`/api/user/${id}`);
     return response;
   },
 
   createUser: async (userData) => {
-    const response = await axios.post('/api/user', userData);
+    const response = await userService.post('/api/user', userData);
     return response;
   },
 
   updateUser: async (id, userData) => {
-    const response = await axios.put(`/api/user/${id}`, userData);
+    const response = await userService.put(`/api/user/${id}`, userData);
     return response;
   },
 
   deleteUser: async (id) => {
-    const response = await axios.delete(`/api/user/${id}`);
+    const response = await userService.delete(`/api/user/${id}`);
     return response;
   },
 
   getCurrentUserInfo: async () => {
-    const response = await axios.post('/getCurrentUserInfo');
+    const response = await userService.post('/getCurrentUserInfo');
     return response;
   },
 
   validateToken: async (token) => {
-    const response = await axios.post('/validateToken', { token });
+    const response = await userService.post('/validateToken', { token });
     return response;
   }
 };
