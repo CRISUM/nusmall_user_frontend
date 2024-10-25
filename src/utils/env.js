@@ -27,7 +27,8 @@ export const ENV = {
   INVENTORY_SERVICE_URL: import.meta.env.VITE_APP_INVENTORY_SERVICE_URL || 'http://nusmall.com:8083',
   USER_SERVICE_URL: import.meta.env.VITE_APP_USER_SERVICE_URL || 'http://nusmall.com:8084',
   AUTH_SERVICE_URL: import.meta.env.VITE_APP_AUTH_SERVICE_URL || 'http://nusmall.com:8085',
-  CART_SERVICE_URL: import.meta.env.VITE_APP_CART_SERVICE_URL || 'http://nusmall.com:8086'
+  CART_SERVICE_URL: import.meta.env.VITE_APP_CART_SERVICE_URL || 'http://nusmall.com:8086',
+  CATEGORY_SERVICE_URL: import.meta.env.VITE_APP_CATEGORY_SERVICE_URL || 'http://nusmall.com:8081',
 };
 
 // Helper functions for environment checks

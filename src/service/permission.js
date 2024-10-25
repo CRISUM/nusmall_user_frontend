@@ -9,25 +9,68 @@ const permissionCache = new Map();
 // Helper to generate cache key
 const getCacheKey = (url, method) => `${url}:${method}`;
 
+// Real API permission service
+const apiPermissionService = {
+  async checkPermission(url, method) {
+    const cacheKey = getCacheKey(url, method);
+    
+    if (permissionCache.has(cacheKey)) {
+      return permissionCache.get(cacheKey);
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await userService.get('/permission', {
+        params: { url, method },
+        headers: {
+          'authToken': token
+        }
+      });
+
+      const result = response.data.success;
+      permissionCache.set(cacheKey, result);
+      
+      return result;
+    } catch (error) {
+      console.error('Permission check failed:', error);
+      return false;
+    }
+  },
+
+  async validatePermissions() {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return false;
+
+      const response = await userService.post('/validateToken', { token });
+      
+      return response.data.success;
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      return false;
+    }
+  },
+
+  clearCache() {
+    permissionCache.clear();
+  }
+};
+
 // Mock permission service
 const mockPermissionService = {
   async checkPermission(url, method) {
     const cacheKey = getCacheKey(url, method);
     
-    // Check cache first
     if (permissionCache.has(cacheKey)) {
       return permissionCache.get(cacheKey);
     }
 
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 100));
 
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || !user.role) return false;
 
     const result = hasPermission(user.role, url, method);
-    
-    // Cache the result
     permissionCache.set(cacheKey, result);
     
     return result;
@@ -43,51 +86,7 @@ const mockPermissionService = {
   }
 };
 
-// Real API permission service
-const apiPermissionService = {
-  async checkPermission(url, method) {
-    const cacheKey = getCacheKey(url, method);
-    
-    if (permissionCache.has(cacheKey)) {
-      return permissionCache.get(cacheKey);
-    }
-
-    try {
-      const response = await userService.get('/permission', {
-        params: {
-          url,
-          method
-        }
-      });
-
-      permissionCache.set(cacheKey, response);
-      
-      return response;
-    } catch (error) {
-      console.error('Permission check failed:', error);
-      return false;
-    }
-  },
-
-  async validatePermissions() {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return false;
-
-      const response = await userService.post('/validateToken', { token });
-      return response;
-    } catch (error) {
-      console.error('Token validation failed:', error);
-      return false;
-    }
-  },
-
-  clearCache() {
-    permissionCache.clear();
-  }
-};
-
-// Export the appropriate service based on environment
+// Export the service instance based on environment
 export const permissionService = ENV_CONFIG.USE_MOCK ? mockPermissionService : apiPermissionService;
 
 // Export helper functions

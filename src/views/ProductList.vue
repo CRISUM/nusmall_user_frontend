@@ -351,11 +351,11 @@ import {
   createProduct,
   updateProduct as updateProductApi,
   deleteProduct as deleteProductApi,
-  getInventory,
   getProductById, 
-  updateInventory,
   uploadImage,
-} from '@/service/product'
+} from '@/service/product';
+
+import { getInventory, updateInventory } from '@/service/inventory';
 import { checkStock } from '@/service/inventory';
 import { permissionService } from '@/service/permission' 
 import { pageQuery } from '@/service/category';

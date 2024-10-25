@@ -42,6 +42,10 @@ export default defineConfig({
       '/api/cart': {
         target: 'http://nusmall.com:8086',
         changeOrigin: true
+      },
+      '/category': {  // Add new category API proxy
+        target: 'http://nusmall.com:8081',
+        changeOrigin: true
       }
     }
   }

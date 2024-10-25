@@ -1,5 +1,5 @@
 // src/store/inventory.js
-import { getInventory, updateInventory } from '@/service/product';
+import { getInventory, updateInventory, checkStock } from '@/service/inventory';
 
 const state = {
   inventory: {},  // 使用对象存储库存信息，key 为 productId

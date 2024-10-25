@@ -48,29 +48,40 @@ const toggle = (v) => {
 const onSubmit = async () => {
   try {
     if (state.type === 'login') {
-      // 登录处理
+      // Login handling
       const response = await login({
         username: state.username,
         password: state.password
       });
 
-      if (response.success) {
-        localStorage.setItem('token', `Bearer ${response.data.token}`);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        
-        // 获取用户详细信息
-        const userInfo = await getCurrentUserInfo(response.data.token);
-        if (userInfo.success) {
-          localStorage.setItem('user', JSON.stringify(userInfo.data));
-        }
+      console.log('Login response:', response);
 
-        showMessage('Login successful', 'success');
-        router.push('/api/home');
+      // Check response directly since axios interceptor already handles the data extraction
+      if (response && response.success) {
+        // Store token without Bearer prefix - it's added by interceptors
+        localStorage.setItem('token', response.data);
+        
+        try {
+          // Get user info
+          const userInfoResponse = await getCurrentUserInfo(response.data);
+          console.log('User info response:', userInfoResponse);
+          
+          if (userInfoResponse && userInfoResponse.success) {
+            localStorage.setItem('user', JSON.stringify(userInfoResponse.data));
+            showMessage('Login successful', 'success');
+            router.push('/api/home');
+          } else {
+            throw new Error('Failed to get user info');
+          }
+        } catch (userError) {
+          console.error('User info error:', userError);
+          throw new Error('Failed to get user information');
+        }
       } else {
-        throw new Error(response.message);
+        throw new Error(response.message || 'Login failed');
       }
     } else {
-      // 注册处理
+      // Registration handling
       const response = await register({
         username: state.username,
         password: state.password,
@@ -82,11 +93,13 @@ const onSubmit = async () => {
         updateDatetime: new Date()
       });
 
-      if (response.success) {
+      console.log('Register response:', response);
+
+      if (response && response.success) {
         state.type = 'login';
         showMessage('Registration successful. Please log in.', 'success');
       } else {
-        throw new Error(response.message);
+        throw new Error(response.message || 'Registration failed');
       }
     }
   } catch (error) {
@@ -94,6 +107,7 @@ const onSubmit = async () => {
     showMessage(error.message || 'An error occurred', 'error');
   }
 };
+
 </script>
 
 <style scoped>

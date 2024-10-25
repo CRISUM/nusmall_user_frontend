@@ -5,22 +5,21 @@ import { isUseMock } from '@/utils/env';
 
 /**
  * Implementation of category management API endpoints
- * Maps to backend CategoryService.java
+ * Maps to backend CategoryController endpoints
  */
 const categoryApi = {
   /**
    * Add new category
-   * Backend endpoint: POST /api/categories
+   * Backend endpoint: POST /category
    * @param {string} authToken
-   * @param {Object} categoryDTO
+   * @param {CategoryDTO} categoryDTO
    */
-  async save(authToken, categoryDTO) {
+  async saveCategory(authToken, categoryDTO) {
     try {
-      // TODO: Uncomment when backend is ready
-      await categoryService.post('/api/categories', categoryDTO, {
+      const response = await categoryService.post('/category', categoryDTO, {
         headers: { authToken }
       });
-      //return mockService.saveCategory(categoryDTO);
+      return response.data;
     } catch (error) {
       console.error('Failed to save category:', error);
       throw error;
@@ -29,19 +28,15 @@ const categoryApi = {
 
   /**
    * Query categories with pagination
-   * Backend endpoint: GET /api/categories
-   * @param {Object} categoryPageQueryDTO
-   * @returns {Promise<Object>} Paginated category list
+   * Backend endpoint: GET /category/page
+   * @param {CategoryPageQueryDTO} queryParams
    */
-  async pageQuery(categoryPageQueryDTO) {
+  async pageQuery(queryParams) {
     try {
-      // TODO: Uncomment when backend is ready
-      console.log('Categories API request made from:', new Error().stack);
-      const response = await categoryService.get('/api/categories', {
-        params: categoryPageQueryDTO
+      const response = await categoryService.get('/category/page', {
+        params: queryParams
       });
       return response.data;
-      //return mockService.queryCategoryPage(categoryPageQueryDTO);
     } catch (error) {
       console.error('Failed to query categories:', error);
       throw error;
@@ -50,14 +45,15 @@ const categoryApi = {
 
   /**
    * Delete category by ID
-   * Backend endpoint: DELETE /api/categories/{id}
+   * Backend endpoint: DELETE /category?id={id}
    * @param {number} id
    */
-  async deleteById(id) {
+  async deleteCategory(id) {
     try {
-      // TODO: Uncomment when backend is ready
-      await categoryService.delete(`/api/categories/${id}`);
-      //return mockService.deleteCategory(id);
+      const response = await categoryService.delete('/category', {
+        params: { id }
+      });
+      return response.data;
     } catch (error) {
       console.error('Failed to delete category:', error);
       throw error;
@@ -66,17 +62,16 @@ const categoryApi = {
 
   /**
    * Update category
-   * Backend endpoint: PUT /api/categories
+   * Backend endpoint: PUT /category
    * @param {string} authToken
-   * @param {Object} categoryDTO
+   * @param {CategoryDTO} categoryDTO
    */
-  async update(authToken, categoryDTO) {
+  async updateCategory(authToken, categoryDTO) {
     try {
-      // TODO: Uncomment when backend is ready
-      await categoryService.put('/api/categories', categoryDTO, {
+      const response = await categoryService.put('/category', categoryDTO, {
         headers: { authToken }
       });
-      //return mockService.updateCategory(categoryDTO);
+      return response.data;
     } catch (error) {
       console.error('Failed to update category:', error);
       throw error;
@@ -85,17 +80,15 @@ const categoryApi = {
 };
 
 // Export services based on environment configuration
-export const saveCategory = isUseMock() ? mockService.saveCategory : categoryApi.save;
+export const saveCategory = isUseMock() ? mockService.saveCategory : categoryApi.saveCategory;
 export const pageQuery = isUseMock() ? mockService.queryCategoryPage : categoryApi.pageQuery;
-export const deleteCategory = isUseMock() ? mockService.deleteCategory : categoryApi.deleteById;
-export const updateCategory = isUseMock() ? mockService.updateCategory : categoryApi.update;
+export const deleteCategory = isUseMock() ? mockService.deleteCategory : categoryApi.deleteCategory;
+export const updateCategory = isUseMock() ? mockService.updateCategory : categoryApi.updateCategory;
 
-// Type definitions for TypeScript support
 /**
  * @typedef {Object} CategoryDTO
  * @property {number} categoryId
  * @property {string} categoryName
- * @property {string} description
  */
 
 /**

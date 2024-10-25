@@ -51,8 +51,12 @@ const apiService = {
     return response;
   },
 
-  getCurrentUserInfo: async () => {
-    const response = await userService.post('/getCurrentUserInfo');
+  getCurrentUserInfo: async (token) => {
+    const response = await userService.post('/getCurrentUserInfo', {}, {
+      headers: {
+        authToken: token
+      }
+    });
     return response;
   },
 
