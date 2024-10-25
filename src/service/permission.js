@@ -1,15 +1,15 @@
 // src/service/permission.js
-import axios from '@/utils/axios';
+import { userService } from '@/utils/axios';  // 添加这行导入
 import { ENV_CONFIG } from '@/config';
 import { hasPermission, HttpMethods } from '@/constants/authTypes';
 
-// Cache for permission results
+// 缓存权限结果
 const permissionCache = new Map();
 
-// Helper to generate cache key
+// 帮助函数生成缓存key
 const getCacheKey = (url, method) => `${url}:${method}`;
 
-// Real API permission service
+// 实际API权限服务
 const apiPermissionService = {
   async checkPermission(url, method) {
     const cacheKey = getCacheKey(url, method);
@@ -27,7 +27,7 @@ const apiPermissionService = {
         }
       });
 
-      const result = response.data.success;
+      const result = response.success;
       permissionCache.set(cacheKey, result);
       
       return result;
@@ -44,7 +44,7 @@ const apiPermissionService = {
 
       const response = await userService.post('/validateToken', { token });
       
-      return response.data.success;
+      return response.success;
     } catch (error) {
       console.error('Token validation failed:', error);
       return false;
@@ -56,7 +56,7 @@ const apiPermissionService = {
   }
 };
 
-// Mock permission service
+// Mock 权限服务 
 const mockPermissionService = {
   async checkPermission(url, method) {
     const cacheKey = getCacheKey(url, method);
@@ -86,10 +86,10 @@ const mockPermissionService = {
   }
 };
 
-// Export the service instance based on environment
+// 根据环境导出服务实例
 export const permissionService = ENV_CONFIG.USE_MOCK ? mockPermissionService : apiPermissionService;
 
-// Export helper functions
+// 导出帮助函数 
 export const checkRoutePermission = async (route, user) => {
   if (!route.meta || !route.meta.permissions) return true;
   

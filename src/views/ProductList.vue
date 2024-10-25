@@ -349,10 +349,10 @@ import {
   getAllProducts,
   getProductsByMerchant,
   createProduct,
-  updateProduct as updateProductApi,
+  updateProduct,
   deleteProduct as deleteProductApi,
-  getProductById, 
   uploadImage,
+  getProductById  // 添加这一行
 } from '@/service/product';
 
 import { getInventory, updateInventory } from '@/service/inventory';

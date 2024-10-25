@@ -51,13 +51,46 @@ const apiService = {
     return response;
   },
 
+  /**
+   * Get current user info including role
+   * Backend endpoint: POST /getCurrentUserInfo
+   * @param {string} token - Auth token
+   * @returns {Promise<ApiResponseUser>} 
+   */
   getCurrentUserInfo: async (token) => {
-    const response = await userService.post('/getCurrentUserInfo', {}, {
-      headers: {
-        authToken: token
+    try {
+      console.log('Sending getCurrentUserInfo request with token:', token);
+      const response = await userService.post('/getCurrentUserInfo', {}, {
+        headers: {
+          'authToken': token
+        }
+      });
+      if (response.success && response.data) {
+        const roleResponse = await apiService.getUserRole(response.data.userId);
+        // 直接将角色名称赋值给用户的role属性
+        response.data.role = roleResponse ? roleResponse.name : null;
       }
-    });
-    return response;
+      return response;
+    } catch (error) {
+      console.error('Failed to get user info:', error);
+      throw error;
+    }
+  },
+
+  /**
+ * Get user role by user ID
+ * Backend endpoint: GET /user-roles/user/{userId}
+ * @param {number} userId 
+ * @returns {Promise<Role>}
+ */
+  getUserRole: async (userId) => {
+    try {
+      const response = await userService.get(`/user-roles/user/${userId}`);
+      return response;
+    } catch (error) {
+      console.error('Failed to get user role:', error);
+      throw error;
+    }
   },
 
   validateToken: async (token) => {
@@ -69,12 +102,15 @@ const apiService = {
 console.log('isUseMock:', isUseMock);
 console.log('Environment variables:', import.meta.env);
 // Export the appropriate service based on environment
-export const login = isUseMock() ? mockService.login : apiService.login;
-export const register = isUseMock() ? mockService.register : apiService.register;
-export const getAllUsers = isUseMock() ? mockService.getAllUsers : apiService.getAllUsers;
-export const getUserById = isUseMock() ? mockService.getUserById : apiService.getUserById;
-export const createUser = isUseMock() ? mockService.createUser : apiService.createUser;
-export const updateUser = isUseMock() ? mockService.updateUser : apiService.updateUser;
-export const deleteUser = isUseMock() ? mockService.deleteUser : apiService.deleteUser;
-export const getCurrentUserInfo = isUseMock() ? mockService.getCurrentUserInfo : apiService.getCurrentUserInfo;
-export const validateToken = isUseMock() ? mockService.validateToken : apiService.validateToken;
+export const {
+  login,
+  register,
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  getCurrentUserInfo,
+  getUserRole,
+  validateToken
+} = isUseMock() ? mockService : apiService;

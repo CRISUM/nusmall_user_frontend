@@ -11,6 +11,7 @@ import Cart from '@/views/cart.vue'
 import ProductList from '@/views/ProductList.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
 import InventoryManagement from '@/views/InventoryManagement.vue'
+import { setupPermissionGuard } from './permissionGuard'
 
 const routes = [
   {
@@ -35,8 +36,10 @@ const routes = [
     component: Home,
     meta: { 
       requiresAuth: true,
+      roles: [UserRoles.ADMIN, UserRoles.SELLER, UserRoles.CUSTOMER],  // 明确允许的角色
       permissions: {
-        read: true
+        read: true,  // 基础读取权限
+        write: false // 不需要写入权限
       }
     }
   },
@@ -149,8 +152,29 @@ const router = createRouter({
   routes
 })
 
+router.beforeEach((to, from, next) => {
+  console.log('Global navigation guard:', {
+    to: to.path,
+    from: from.path,
+    meta: to.meta
+  });
+
+  next();
+});
+
 router.beforeEach(async (to, from, next) => {
+
+  console.log('Global navigation guard triggered', {
+    to: to.path,
+    from: from.path,
+    meta: to.meta
+  });
+
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  if (!requiresAuth) {
+    next();
+    return;
+  }
   const roles = to.matched.reduce((acc, record) => {
     if (record.meta.roles) {
       return acc.concat(record.meta.roles)
@@ -160,49 +184,34 @@ router.beforeEach(async (to, from, next) => {
   
   const user = JSON.parse(localStorage.getItem('user'))
   const token = localStorage.getItem('token')
-  const isAuthenticated = !!token
 
-  // Public paths check
-  if (!requiresAuth) {
-    next()
-    return
+  console.log('Auth check:', {
+    path: to.path,
+    requiresAuth,
+    user: user ? { ...user, token: undefined } : null
+  });
+
+  if (!token) {
+    next('/api/login');
+    return;
   }
 
-  // Already logged in, redirect to home
-  if (to.path === '/api/login' && isAuthenticated) {
-    next('/api/home')
-    return
-  }
-
-  // Authentication check
-  if (requiresAuth && !isAuthenticated) {
-    next('/api/login')
-    return
-  }
-
-  try {
-    // Role-based access check
-    if (roles.length > 0 && (!user || !roles.includes(user.role))) {
-      next('/403')
-      return
+  const allowedRoles = to.meta?.roles || [];
+  if (user && user.role && allowedRoles.length > 0) {
+    if (!allowedRoles.includes(user.role)) {
+      console.error('Unauthorized role:', {
+        userRole: user.role,
+        allowedRoles,
+        path: to.path
+      });
+      next('/403');
+      return;
     }
-
-    // Permission check using backend service
-    if (to.meta.permissions) {
-      const method = to.meta.permissions.write ? 'POST' : 'GET'
-      const hasPermission = await permissionService.checkPermission(to.path, method)
-      
-      if (!hasPermission) {
-        next('/403')
-        return
-      }
-    }
-
-    next()
-  } catch (error) {
-    console.error('Permission check failed:', error)
-    next('/api/login')
   }
+
+  next();
 })
+
+setupPermissionGuard(router);
 
 export default router

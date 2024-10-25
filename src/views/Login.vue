@@ -26,8 +26,9 @@
 import { reactive, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import SimpleHeader from '@/components/SimpleHeader.vue'
-import { getCurrentUserInfo, login, register } from '@/service/user'
-
+import { getCurrentUserInfo, login, register, getUserRole } from '@/service/user'
+import { useStore } from 'vuex';
+const store = useStore();
 const router = useRouter()
 const showMessage = inject('showMessage')
 
@@ -60,18 +61,21 @@ const onSubmit = async () => {
       if (response && response.success) {
         // Store token without Bearer prefix - it's added by interceptors
         localStorage.setItem('token', response.data);
-        
+
         try {
-          // Get user info
+          // Get user info with the new token
           const userInfoResponse = await getCurrentUserInfo(response.data);
           console.log('User info response:', userInfoResponse);
           
           if (userInfoResponse && userInfoResponse.success) {
+            
             localStorage.setItem('user', JSON.stringify(userInfoResponse.data));
+          
+            // 更新store中的用户信息
+            await store.dispatch('user/setUser', userInfoResponse.data);
+            
             showMessage('Login successful', 'success');
             router.push('/api/home');
-          } else {
-            throw new Error('Failed to get user info');
           }
         } catch (userError) {
           console.error('User info error:', userError);

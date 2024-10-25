@@ -31,8 +31,15 @@ const createServiceInstance = (baseURL) => {
 
   // Add response interceptor
   instance.interceptors.response.use(
-    response => response.data,
-    error => Promise.reject(error)
+    response => {
+      // Log response for debugging
+      console.log(`API Response [${response.config.url}]:`, response.data);
+      return response.data;
+    },
+    error => {
+      console.error('API Error:', error);
+      return Promise.reject(error);
+    }
   );
 
   return instance;
@@ -41,16 +48,16 @@ const createServiceInstance = (baseURL) => {
 export { isUseMock };
 
 // Create service instances with different base URLs
-export const userService = createServiceInstance(ENV.USER_SERVICE_URL || 'http://nusmall.com:8084');
-export const productService = createServiceInstance(ENV.PRODUCT_SERVICE_URL || 'http://nusmall.com:8081');
-export const orderService = createServiceInstance(ENV.ORDER_SERVICE_URL || 'http://nusmall.com:8082');
-export const inventoryService = createServiceInstance(ENV.INVENTORY_SERVICE_URL || 'http://nusmall.com:8083');
-export const cartService = createServiceInstance(ENV.CART_SERVICE_URL || 'http://nusmall.com:8086');
-export const authService = createServiceInstance(ENV.AUTH_SERVICE_URL || 'http://nusmall.com:8085');
-export const categoryService = createServiceInstance(ENV.CATEGORY_SERVICE_URL || 'http://nusmall.com:8081');
+export const userService = createServiceInstance(ENV.USER_SERVICE_URL);
+export const productService = createServiceInstance(ENV.PRODUCT_SERVICE_URL);
+export const orderService = createServiceInstance(ENV.ORDER_SERVICE_URL); 
+export const inventoryService = createServiceInstance(ENV.INVENTORY_SERVICE_URL);
+export const cartService = createServiceInstance(ENV.CART_SERVICE_URL);
+export const authService = createServiceInstance(ENV.AUTH_SERVICE_URL);
+export const categoryService = createServiceInstance(ENV.CATEGORY_SERVICE_URL);
 
-// Export base instance for backward compatibility
-export default createServiceInstance(ENV.API_BASE_URL || 'http://localhost:8080');
+// 默认实例
+export default createServiceInstance(ENV.API_BASE_URL);
 
 // Export batch request helpers
 export const batchRequest = (requests) => {

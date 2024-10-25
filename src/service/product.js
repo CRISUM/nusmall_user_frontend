@@ -118,20 +118,19 @@ const apiService = {
       console.error('Failed to delete image:', error);
       throw error;
     }
-  }
+  },
+  getProductById: async (id) => {
+    try {
+      const response = await productService.get(`/product/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get product:', error);
+      throw error;
+    }
+  },
 };
 
 // Export all services using environment check
-const services = {
-  getAllProducts: isUseMock() ? mockService.getAllProducts : apiService.getAllProducts,
-  getProductsByMerchant: isUseMock() ? mockService.getProductsByMerchant : apiService.getProductsByMerchant,
-  createProduct: isUseMock() ? mockService.createProduct : apiService.createProduct,
-  updateProduct: isUseMock() ? mockService.updateProduct : apiService.updateProduct,
-  deleteProduct: isUseMock() ? mockService.deleteProduct : apiService.deleteProduct,
-  uploadImage: isUseMock() ? mockService.uploadImage : apiService.uploadImage,
-  deleteImage: isUseMock() ? mockService.deleteImage : apiService.deleteImage
-};
-
 export const {
   getAllProducts,
   getProductsByMerchant,
@@ -139,5 +138,8 @@ export const {
   updateProduct,
   deleteProduct,
   uploadImage,
-  deleteImage
-} = services;
+  deleteImage,
+  getProductById  // 添加这一行
+} = isUseMock() 
+  ? mockService 
+  : apiService;

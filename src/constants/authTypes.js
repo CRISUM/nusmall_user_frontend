@@ -105,11 +105,9 @@ export const UserRoles = {
   
   // Check if route is accessible for role
   export const isRouteAccessible = (userRole, path) => {
-    if (userRole === UserRoles.ADMIN) return true;
-    const routes = RoleRoutes[userRole] || [];
-    // Use more flexible path matching
-    return routes.some(route => 
-      path.startsWith(route) || 
-      path.replace(/\/\d+/, '').startsWith(route)
-    );
+    if (!userRole) return false;
+    if (userRole === 'ADMIN') return true;
+    
+    const allowedRoutes = RoleRoutes[userRole] || [];
+    return allowedRoutes.some(route => path.startsWith(route));
   };

@@ -99,6 +99,7 @@ import { addToCart as addToCartService } from '@/service/cart';
         commit('SET_SELECTED_ITEMS', selectedItems);
       } catch (error) {
         console.error('Failed to initialize cart:', error);
+        commit('SET_ERROR', error.message);
         // Initialize with empty cart on error
         commit('SET_CART', {
           cartId: Date.now(),

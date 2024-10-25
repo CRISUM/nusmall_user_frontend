@@ -37,6 +37,7 @@ const userRole = ref('');
 const checkUserRole = () => {
   const user = JSON.parse(localStorage.getItem('user'));
   userRole.value = user ? user.role : '';
+  console.log('User role:', userRole.value);
 };
 
 // 计算属性用于常用的权限检查

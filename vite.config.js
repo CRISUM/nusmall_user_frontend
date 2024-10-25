@@ -14,36 +14,31 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:8084',  // 代理后端服务器
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+      '/api/user': {
+        target: 'http://nusmall.com:8084',
+        changeOrigin: true
       },
       '/api/product': {
         target: 'http://nusmall.com:8081',
         changeOrigin: true
       },
       '/api/order': {
-        target: 'http://nusmall.com:8082',
+        target: 'http://nusmall.com:8082', 
         changeOrigin: true
       },
       '/api/inventory': {
         target: 'http://nusmall.com:8083',
         changeOrigin: true
       },
-      '/api/user': {
-        target: 'http://nusmall.com:8084',
-        changeOrigin: true
-      },
       '/api/auth': {
         target: 'http://nusmall.com:8085',
-        changeOrigin: true
+        changeOrigin: true  
       },
-      '/api/cart': {
+      '/api/v1/cart': {  
         target: 'http://nusmall.com:8086',
         changeOrigin: true
       },
-      '/category': {  // Add new category API proxy
+      '/category': {
         target: 'http://nusmall.com:8081',
         changeOrigin: true
       }
