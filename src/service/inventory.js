@@ -18,7 +18,7 @@ const inventoryApi = {
   async addInventory(authToken, productId, availableStock) {
     try {
       // TODO: Uncomment when backend is ready
-      const response = await userService.post('/api/inventory', {
+      const response = await userService.post('/inventory', {
         productId,
         availableStock
       }, {
@@ -40,7 +40,7 @@ const inventoryApi = {
   async getInventoryStatus(productId) {
     try {
       // TODO: Uncomment when backend is ready
-      const response = await userService.get(`/api/inventory/query/${productId}`);
+      const response = await userService.get(`/inventory/query/${productId}`);
       //const response = await mockService.getInventory(null, productId);
       return response;
     } catch (error) {
@@ -57,7 +57,7 @@ const inventoryApi = {
   async deleteInventory(productId) {
     try {
       // TODO: Uncomment when backend is ready
-      await userService.delete(`/api/inventory/${productId}`);
+      await userService.delete(`/inventory/${productId}`);
       //await mockService.deleteInventory(productId);
       return true;
     } catch (error) {
@@ -76,7 +76,7 @@ const inventoryApi = {
   async updateInventory(authToken, productId, availableStock) {
     try {
       // TODO: Uncomment when backend is ready
-      const response = await userService.put('/api/inventory', {
+      const response = await userService.put('/inventory', {
         productId,
         availableStock
       }, {
@@ -99,7 +99,7 @@ const inventoryApi = {
   async checkStock(productId, quantity) {
     try {
       // TODO: Uncomment when backend is ready
-      const response = await userService.get('/api/inventory/check', {
+      const response = await userService.get('/inventory/check', {
         params: { productId, quantity }
       });
       //const response = await mockService.checkStock(productId, quantity);
@@ -119,7 +119,7 @@ const inventoryApi = {
   async deductStock(productId, quantity) {
     try {
       // TODO: Uncomment when backend is ready
-      const response = await userService.post('/api/inventory/deduct', {
+      const response = await userService.post('/inventory/deduct', {
         productId,
         quantity
       });
@@ -140,7 +140,7 @@ const inventoryApi = {
   async addStock(productId, quantity) {
     try {
       // TODO: Uncomment when backend is ready
-      const response = await userService.post('/api/inventory/add', {
+      const response = await userService.post('/inventory/add', {
         productId,
         quantity
       });

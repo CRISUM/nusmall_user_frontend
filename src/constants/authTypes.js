@@ -23,7 +23,10 @@ export const UserRoles = {
       '/api/cart',
       '/api/user',
       '/api/product',
-      '/api/getCurrentUserInfo'
+      '/api/getCurrentUserInfo',
+      '/order/index',
+      '/order/submitOrder',
+      '/order/inner/paySuccess'
     ],
     SELLER: [
       '/api/home',
@@ -33,7 +36,10 @@ export const UserRoles = {
       '/api/product',
       '/api/inventory',
       '/api/merchant/products',
-      '/api/getCurrentUserInfo'
+      '/api/getCurrentUserInfo',
+      '/order/index',
+      '/order/submitOrder',
+      '/order/inner/paySuccess'
     ],
     ADMIN: [
       '/api/home',
@@ -44,7 +50,10 @@ export const UserRoles = {
       '/api/inventory',
       '/api/users',
       '/api/merchant/products',
-      '/api/getCurrentUserInfo'
+      '/api/getCurrentUserInfo',
+      '/order/index',
+      '/order/submitOrder',
+      '/order/inner/paySuccess'
     ]
   };
   
@@ -83,6 +92,17 @@ export const UserRoles = {
       [HttpMethods.POST]: [UserRoles.ADMIN],
       [HttpMethods.PUT]: [UserRoles.ADMIN],
       [HttpMethods.DELETE]: [UserRoles.ADMIN]
+    },
+    '/api/orders': {
+      [HttpMethods.GET]: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN],
+      [HttpMethods.POST]: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN]
+    },
+    '/order': {
+      [HttpMethods.GET]: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN],
+      [HttpMethods.POST]: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN]
+    },
+    '/order/index': {
+      [HttpMethods.GET]: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN]
     }
   };
   

@@ -36,6 +36,7 @@
   import avatarImage from '@/assets/pic/useravatar.png'
   import { getCurrentUserInfo } from '@/service/user';
   import { permissionService } from '@/service/permission';
+  import { showMessage } from '@/utils/message'
   
   const user = ref({});
   const loading = ref(true);
@@ -57,6 +58,7 @@
     } catch (error) {
       console.error('Failed to load user info:', error);
       error.value = error.message;
+      showMessage?.('Failed to load user info: ' + error.message, 'error')
     } finally {
       loading.value = false;
     }
@@ -66,6 +68,7 @@
     try {
       return await permissionService.checkPermission(path, 'GET');
     } catch {
+      showMessage?.('Permission check failed: ' + error.message, 'error')
       return false;
     }
   };
@@ -74,7 +77,7 @@
     if (await checkPermission(route)) {
       router.push(route);
     } else {
-      showMessage('Access denied', 'error');
+      showMessage?.('Access denied', 'error')
     }
   };
 

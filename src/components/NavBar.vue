@@ -80,19 +80,29 @@ const routes = computed(() => {
   return baseRoutes;
 });
 
-const checkAccess = (route) => {
-  switch (route.access) {
-    case 'all':
-      return true;
-    case 'authenticated':
-      return !!userRole.value;
-    case 'admin':
-      return userRole.value === 'ADMIN';
-    case 'seller':
-      return userRole.value === 'SELLER';
-    default:
-      return false;
-  }
+const checkAccess = async (route) => {
+
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+  
+  return await permissionService.checkIfHasPermission({
+    url: route.path,
+    method: route.meta?.httpMethod || 'GET',
+    token
+  });
+
+  // switch (route.access) {
+  //   case 'all':
+  //     return true;
+  //   case 'authenticated':
+  //     return !!userRole.value;
+  //   case 'admin':
+  //     return userRole.value === 'ADMIN';
+  //   case 'seller':
+  //     return userRole.value === 'SELLER';
+  //   default:
+  //     return false;
+  // }
 };
 
 const menuItems = computed(() => [

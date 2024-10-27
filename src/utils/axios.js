@@ -37,6 +37,10 @@ const createServiceInstance = (baseURL) => {
       return response.data;
     },
     error => {
+      if (error.response?.status === 401) {
+        store.dispatch('user/logout');
+        router.push('/login');
+      }
       console.error('API Error:', error);
       return Promise.reject(error);
     }

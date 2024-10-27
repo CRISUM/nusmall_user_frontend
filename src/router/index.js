@@ -140,11 +140,24 @@ const routes = [
     }
   },
   {
+    path: '/api/orders',
+    name: 'Orders',
+    component: () => import('@/views/OrderList.vue'),
+    meta: { 
+      requiresAuth: true,
+      roles: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN],
+      permissions: {
+        read: true
+      }
+    }
+  },
+  {
     path: '/403',
     name: 'Forbidden',
     component: () => import('@/views/Forbidden.vue'),
     meta: { requiresAuth: false }
-  }
+  },
+
 ]
 
 const router = createRouter({

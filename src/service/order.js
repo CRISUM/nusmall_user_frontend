@@ -1,5 +1,5 @@
 // src/service/order.js
-import { userService } from '@/utils/axios';
+import { orderService } from '@/utils/axios';
 import * as mockService from '@/utils/mockService';
 import { isUseMock } from '@/utils/env';
 
@@ -34,12 +34,10 @@ const orderApi = {
    */
   async getOrderByUserId(userId) {
     try {
-      // TODO: Uncomment when backend is ready
-      // const response = await userService.get(`/api/orders/user/${userId}`);
-      // return response.data;
-      return mockService.getOrderByUserId(userId);
+      const response = await orderService.get('/order/index');
+      return response.data;
     } catch (error) {
-      console.error('Failed to get user orders:', error);
+      console.error('Failed to get orders:', error);
       throw error;
     }
   },
@@ -52,10 +50,8 @@ const orderApi = {
    */
   async submitOrder(submitOrderParam) {
     try {
-      // TODO: Uncomment when backend is ready
-      // const response = await userService.post('/api/orders/submit', submitOrderParam);
-      // return response.data;
-      return mockService.submitOrder(submitOrderParam);
+      const response = await userService.post('/orders/submit', submitOrderParam);
+      return response.data;
     } catch (error) {
       console.error('Failed to submit order:', error);
       throw error;
@@ -67,11 +63,41 @@ const orderApi = {
    * Backend endpoint: PUT /api/orders/{orderId}/pay
    * @param {number} orderId
    */
+  async getOrderDetails(orderId) {
+    try {
+      const response = await orderService.get(`/order/trade`);
+      return response;
+    } catch (error) {
+      console.error('Failed to get order details:', error);
+      throw error;
+    }
+  },
+  async getTradeInfo() {
+    try {
+      const response = await orderService.get('/order/trade');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get trade info:', error);
+      throw error;
+    }
+  },
+
+  // 修改 - 提交订单
+  async submitOrder(orderData) {
+    try {
+      const response = await orderService.post('/order/submitOrder', orderData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to submit order:', error);
+      throw error;
+    }
+  },
+  
+  // 修改 - 支付成功回调
   async paySuccess(orderId) {
     try {
-      // TODO: Uncomment when backend is ready
-      // await userService.put(`/api/orders/${orderId}/pay`);
-      await mockService.paySuccess(orderId);
+      await orderService.put(`/order/inner/paySuccess?orderId=${orderId}`);
+      return true;
     } catch (error) {
       console.error('Failed to update payment status:', error);
       throw error;
@@ -80,10 +106,14 @@ const orderApi = {
 };
 
 // Export services based on environment configuration
-export const addOrder = isUseMock() ? mockService.addOrder : orderApi.addOrder;
-export const getOrderByUserId = isUseMock() ? mockService.getOrderByUserId : orderApi.getOrderByUserId;
-export const submitOrder = isUseMock() ? mockService.submitOrder : orderApi.submitOrder;
-export const paySuccess = isUseMock() ? mockService.paySuccess : orderApi.paySuccess;
+export const {
+  addOrder,
+  getOrderByUserId,
+  getTradeInfo,
+  submitOrder,
+  paySuccess,
+  getOrderDetails
+} = orderApi;
 
 // Type definitions for TypeScript support
 /**

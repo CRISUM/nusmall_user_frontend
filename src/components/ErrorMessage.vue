@@ -13,14 +13,6 @@ import { ref } from 'vue';
 const message = ref('');
 const type = ref('error');
 
-const showMessage = (msg, msgType = 'error', duration = 3000) => {
-  message.value = msg;
-  type.value = msgType;
-  setTimeout(() => {
-    message.value = '';
-  }, duration);
-};
-
 defineExpose({ showMessage });
 </script>
 

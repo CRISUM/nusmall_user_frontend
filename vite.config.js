@@ -22,6 +22,10 @@ export default defineConfig({
         target: 'http://nusmall.com:8070',
         changeOrigin: true
       },
+      '/order': {
+        target: 'http://nusmall.com:8070',
+        changeOrigin: true,
+      },
       '/orders': {
         target: 'http://nusmall.com:8070',
         changeOrigin: true

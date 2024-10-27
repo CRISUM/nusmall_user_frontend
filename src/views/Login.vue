@@ -30,8 +30,8 @@ import { getCurrentUserInfo, login, register, getUserRole } from '@/service/user
 import { useStore } from 'vuex';
 const store = useStore();
 const router = useRouter()
-const showMessage = inject('showMessage')
-
+import { showMessage } from '@/utils/message'
+  
 const state = reactive({
   username: '',
   password: '',
