@@ -45,6 +45,10 @@ export default defineConfig({
       '/getCurrentUserInfo': {  // 添加获取用户信息路径代理 
         target: 'http://nusmall.com:8070',
         changeOrigin: true
+      },
+      '/category': {
+        target: 'http://nusmall.com:8070',
+        changeOrigin: true
       }
     }
   }

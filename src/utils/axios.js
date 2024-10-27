@@ -12,7 +12,8 @@ const createServiceInstance = (baseURL) => {
     baseURL,
     timeout: ENV.API_TIMEOUT,
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': '*/*'
     }
   });
 

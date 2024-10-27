@@ -168,7 +168,7 @@
       </div>
   
       <!-- Add/Edit Product Modal -->
-      <div v-if="showAddProduct || editingProduct" class="modal">
+      <div v-if="showAddProduct || editingProduct" class="modal" @click="handleModalClick">
         <div class="modal-content">
           <div class="modal-header">
             <h3>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h3>
@@ -200,7 +200,7 @@
               <label>Category *</label>
               <select v-model="productForm.categoryId" required>
                 <option value="">Select Category</option>
-                <option 
+                <option
                   v-for="category in categories"
                   :key="category.categoryId"
                   :value="category.categoryId"
@@ -208,6 +208,10 @@
                   {{ category.categoryName }}
                 </option>
               </select>
+              <!-- 添加一个链接到分类管理 -->
+              <div v-if="isAdmin" class="category-manage-link">
+                <router-link to="/api/category-management">Manage Categories</router-link>
+              </div>
             </div>
   
             <div class="form-group">
@@ -378,7 +382,6 @@ const categoryName = ref('');
 const showSuccessModal = ref(false);
 const products = ref([])
 const loading = ref(true)
-const showAddProduct = ref(false)
 const showInventoryModal = ref(false)
 const showDeleteConfirm = ref(false)
 const editingProduct = ref(null)
@@ -397,21 +400,41 @@ const sortBy = ref('newest');  // 默认排序方式
 const error = ref(null);  // 用于错误状态的处理
 const currentPage = ref(1);  // 当前页面，默认为第一页
 const pageSize = ref(10);  // 每页显示的产品数量
-const loadCategories = async () => {
-  try {
-    const response = await pageQuery({
-      page: 1,
-      pageSize: 100
-    });
-    categories.value = response.records;
-  } catch (error) {
-    console.error('Failed to load categories:', error);
-  }
-};
+const showAddModal = ref(false);
+const productForm = ref({
+  name: '',
+  description: '',
+  price: '',
+  categoryId: '',
+  initialStock: 0,
+  imageUrl: '/api/placeholder/400/320'
+});
+
+// const productForm = ref({
+//   name: '',
+//   description: '',
+//   price: '',
+//   categoryId: '', 
+//   availableStock: 0,
+//   imageUrls: [], 
+//   createUser: '',
+//   updateUser: ''
+// });
+
 
 const hasRelatedProducts = computed(() => {
   return relatedProducts.value && relatedProducts.value.length > 0;
 });
+
+const showAddProduct = ref(false);  
+
+const validateForm = () => {
+  if (!productForm.value.categoryId) {
+    showMessage('Please select a category', 'error');
+    return false;
+  }
+  return true;
+};
 
 const filteredProducts = computed(() => {
   if (!products.value) return [];
@@ -440,17 +463,6 @@ const goToDetail = (productId) => {
     router.push(`/api/product/${productId}`);
   }
 };
-
-const productForm = ref({
-  name: '',
-  description: '',
-  price: '',
-  categoryId: '', 
-  availableStock: 0,
-  imageUrls: [], 
-  createUser: '',
-  updateUser: ''
-});
 
 const pageTitle = computed(() => {
   switch (userRole.value) {
@@ -536,6 +548,9 @@ const confirmAddToCart = async () => {
 
 // Methods for product management
 const handleSubmit = async () => {
+  if (!validateForm()) {
+    return;
+  }
   try {
     const token = localStorage.getItem('token');
     const formData = new FormData();
@@ -571,18 +586,29 @@ const editProduct = (product) => {
   showAddProduct.value = true
 }
 
+// 确保 closeModal 方法存在并正确实现
 const closeModal = () => {
-  showAddProduct.value = false
-  editingProduct.value = null
+  showAddProduct.value = false;
+  showAddModal.value = false;
+  editingProduct.value = null;
   productForm.value = {
     name: '',
     description: '',
     price: '',
-    category: '',
+    categoryId: '',
     initialStock: 0,
     imageUrl: '/api/placeholder/400/320'
+  };
+  error.value = null;
+};
+
+const handleModalClick = (event) => {
+  // 只有点击遮罩层才关闭
+  if (event.target.classList.contains('modal')) {
+    closeModal();
   }
-}
+};
+
 
 // Add computed property for cart status
 const getCartButtonText = computed(() => (product) => {
@@ -709,7 +735,8 @@ const loadProducts = async () => {
 onMounted(async () => {
   await store.dispatch('cart/fetchCartItems')
   await loadProducts()
-})
+});
+
 </script>
 <style scoped>
 .product-list {
@@ -860,10 +887,9 @@ onMounted(async () => {
   background: white;
   padding: 20px;
   border-radius: 8px;
-  min-width: 400px;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: 500px;
+  width: 90%;
+  position: relative;
 }
 
 .modal-header {
@@ -873,12 +899,39 @@ onMounted(async () => {
   margin-bottom: 20px;
 }
 
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cancel-btn,
+.primary-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: white;
+  border: 1px solid #ddd;
+}
+
+.primary-btn {
+  background: #1baeae;
+  color: white;
+  border: none;
+}
+
 .close-btn {
   background: none;
   border: none;
   font-size: 1.5em;
   cursor: pointer;
+  padding: 0;
   color: #666;
+  transition: color 0.3s;
 }
 
 /* Forms */

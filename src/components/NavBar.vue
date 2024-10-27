@@ -151,7 +151,8 @@ const menuItems = computed(() => [
     role: 'SELLER',
     children: [
       { path: '/api/merchant/products', label: 'My Products' },
-      { path: '/api/inventory', label: 'My Inventory' }
+      { path: '/api/inventory', label: 'My Inventory' },
+      { path: '/api/category-management', label: 'Categories Management' },
     ]
   }
 ]);

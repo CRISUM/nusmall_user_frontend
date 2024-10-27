@@ -12,6 +12,8 @@ import ProductList from '@/views/ProductList.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
 import InventoryManagement from '@/views/InventoryManagement.vue'
 import { setupPermissionGuard } from './permissionGuard'
+import CategoryManagement from '@/views/CategoryManagement.vue'
+
 
 const routes = [
   {
@@ -148,6 +150,19 @@ const routes = [
       roles: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN],
       permissions: {
         read: true
+      }
+    }
+  },
+  {
+    path: '/api/category-management',
+    name: 'CategoryManagement',
+    component: CategoryManagement,
+    meta: { 
+      requiresAuth: true,
+      roles: [UserRoles.ADMIN], // 只允许管理员访问
+      permissions: {
+        read: true,
+        write: true
       }
     }
   },

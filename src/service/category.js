@@ -81,7 +81,36 @@ const categoryApi = {
 
 // Export services based on environment configuration
 export const saveCategory = isUseMock() ? mockService.saveCategory : categoryApi.saveCategory;
-export const pageQuery = isUseMock() ? mockService.queryCategoryPage : categoryApi.pageQuery;
+/**
+ * Query categories with pagination
+ * @param {Object} queryParams
+ * @returns {Promise<Object>}
+ */
+export const pageQuery = async (queryParams = {}) => {
+  try {
+    // 确保所有必需的参数都有默认值
+    const params = {
+      page: queryParams.page || 0,
+      pageSize: queryParams.pageSize || 10,
+      categoryId: queryParams.categoryId || 0,
+      categoryName: queryParams.categoryName || ''
+    };
+
+    const response = await categoryService.get('/category/page', {
+      params,
+      headers: {
+        'accept': '*/*',
+        // 如果需要的话添加其他headers
+      }
+    });
+
+    console.log('Category API response:', response);
+    return response;
+  } catch (error) {
+    console.error('Failed to query categories:', error);
+    throw error;
+  }
+};
 export const deleteCategory = isUseMock() ? mockService.deleteCategory : categoryApi.deleteCategory;
 export const updateCategory = isUseMock() ? mockService.updateCategory : categoryApi.updateCategory;
 

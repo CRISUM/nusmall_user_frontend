@@ -1,55 +1,46 @@
 // src/service/permission.js
-import { userService } from '@/utils/axios';  // 添加这行导入
+import { userService } from '@/utils/axios';
 import { ENV_CONFIG } from '@/config';
-import { hasPermission, HttpMethods } from '@/constants/authTypes';
+import { UserRoles } from '@/constants/authTypes';
 
 // 缓存权限结果
 const permissionCache = new Map();
 
-// 帮助函数生成缓存key
 const getCacheKey = (url, method) => `${url}:${method}`;
 
 // 实际API权限服务
-export const permissionService = {
+const apiPermissionService = {
   async checkPermission(url, method) {
-    try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      
-      // Admin has all permissions
-      if (user?.role === UserRoles.ADMIN) {
-        return true;
-      }
+    const cacheKey = getCacheKey(url, method);
+    
+    if (permissionCache.has(cacheKey)) {
+      return permissionCache.get(cacheKey);
+    }
 
+    try {
+      // 从localStorage获取token
       const token = localStorage.getItem('token');
       if (!token) return false;
 
+      // 根据API文档，调用permission检查接口
       const response = await userService.get('/permission', {
-        params: { url, method },
+        params: { 
+          url,  // API需要url参数
+          method  // API需要method参数
+        },
         headers: {
-          'authToken': token
+          'authToken': token  // API需要在header中传入authToken
         }
       });
 
-      // 如果API返回false但是用户有正确的角色，依然返回true
-      if (!response && user) {
-        const allowedRoutes = {
-          '/api/users': [UserRoles.ADMIN],
-          '/api/user': [UserRoles.ADMIN],
-          '/api/orders': [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN]
-        };
-
-        const routeRoles = allowedRoutes[url];
-        if (routeRoles && routeRoles.includes(user.role)) {
-          return true;
-        }
-      }
-
-      return response;
+      // API返回值为boolean类型
+      const hasPermission = !!response;
+      permissionCache.set(cacheKey, hasPermission);
+      
+      return hasPermission;
     } catch (error) {
       console.error('Permission check failed:', error);
-      // 如果API检查失败，回退到基于角色的权限检查
-      const user = JSON.parse(localStorage.getItem('user'));
-      return user?.role === UserRoles.ADMIN;
+      return false;
     }
   },
 
@@ -58,14 +49,10 @@ export const permissionService = {
       const token = localStorage.getItem('token');
       if (!token) return false;
 
-      // Admin always has valid permissions
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (user?.role === UserRoles.ADMIN) {
-        return true;
-      }
-
+      // 根据API文档调用token验证接口
       const response = await userService.post('/validateToken', { token });
-      return response?.success ?? false;
+      
+      return response;
     } catch (error) {
       console.error('Token validation failed:', error);
       return false;
@@ -77,11 +64,47 @@ export const permissionService = {
   }
 };
 
-// 导出帮助函数 
+// Mock权限服务(开发环境使用) 
+const mockPermissionService = {
+  async checkPermission(url, method) {
+    const cacheKey = getCacheKey(url, method);
+    
+    if (permissionCache.has(cacheKey)) {
+      return permissionCache.get(cacheKey);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // 从localStorage获取用户信息进行权限判断
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.role) return false;
+
+    // 使用authTypes中定义的权限检查函数
+    const result = hasPermission(user.role, url, method);
+    permissionCache.set(cacheKey, result);
+    
+    return result;
+  },
+
+  async validatePermissions() {
+    const token = localStorage.getItem('token');
+    return !!token;
+  },
+
+  clearCache() {
+    permissionCache.clear();
+  }
+};
+
+// 根据环境导出服务实例
+export const permissionService = ENV_CONFIG.USE_MOCK ? 
+  mockPermissionService : apiPermissionService;
+
+// 导出辅助函数
 export const checkRoutePermission = async (route, user) => {
-  if (!route.meta || !route.meta.permissions) return true;
+  if (!route.meta?.permissions) return true;
   
-  const method = route.meta.permissions.write ? HttpMethods.POST : HttpMethods.GET;
+  const method = route.meta.permissions.write ? 'POST' : 'GET';
   return await permissionService.checkPermission(route.path, method);
 };
 

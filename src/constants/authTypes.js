@@ -38,6 +38,7 @@ export const UserRoles = {
       '/api/inventory',
       '/api/merchant/products',
       '/api/getCurrentUserInfo',
+      '/api/category-management',
       '/order/index',
       '/order/submitOrder',
       '/order/inner/paySuccess'
@@ -53,6 +54,7 @@ export const UserRoles = {
       '/api/users/new', 
       '/api/merchant/products',
       '/api/getCurrentUserInfo',
+      '/api/category-management',
       '/order/index',
       '/order/submitOrder',
       '/order/inner/paySuccess'
@@ -105,7 +107,13 @@ export const UserRoles = {
     },
     '/order/index': {
       [HttpMethods.GET]: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN]
-    }
+    },
+    '/api/category-management': {
+      [HttpMethods.GET]: [UserRoles.SELLER, UserRoles.ADMIN],
+      [HttpMethods.POST]: [UserRoles.SELLER, UserRoles.ADMIN],
+      [HttpMethods.PUT]: [UserRoles.SELLER, UserRoles.ADMIN],
+      [HttpMethods.DELETE]: [UserRoles.SELLER, UserRoles.ADMIN]
+    },
   };
   
   // Permission check helpers
