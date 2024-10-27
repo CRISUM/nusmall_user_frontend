@@ -56,22 +56,35 @@ const loadUsers = async () => {
     loading.value = true;
     const response = await getAllUsers();
     
-    if (response.success) {
-      users.value = response.data;
-      total.value = response.total || response.data.length;
+    if (response && response.data) {
+      users.value = response.data.map(user => ({
+        ...user,
+        id: user.userId || user.id  // 确保id字段存在
+      }));
     } else {
       throw new Error(response.message);
     }
   } catch (error) {
-    showMessage(error.message || 'Failed to fetch users', 'error');
+    console.error('Failed to load users:', error);
+    showMessage('Failed to load users: ' + error.message, 'error');
   } finally {
     loading.value = false;
   }
 };
 
-const editUser = (userId) => {
-  router.push(`/api/users/${userId}/edit`)
-}
+const editUser = async (userId) => {
+  try {
+    const hasPermission = await permissionService.checkPermission('/api/users', 'PUT');
+    if (hasPermission) {
+      router.push(`/api/users/${userId}/edit`);
+    } else {
+      showMessage('Permission denied', 'error');
+    }
+  } catch (error) {
+    console.error('Permission check failed:', error);
+    showMessage(error.message || 'Permission check failed', 'error');
+  }
+};
 
 const deleteUser = async (userId) => {
   if (!confirm('Are you sure you want to delete this user?')) {
@@ -79,6 +92,12 @@ const deleteUser = async (userId) => {
   }
 
   try {
+    const hasPermission = await permissionService.checkPermission('/api/users', 'DELETE');
+    if (!hasPermission) {
+      showMessage('Permission denied', 'error');
+      return;
+    }
+
     const response = await deleteUserApi(userId);
     if (response.success) {
       showMessage('User deleted successfully', 'success');
@@ -87,6 +106,7 @@ const deleteUser = async (userId) => {
       throw new Error(response.message);
     }
   } catch (error) {
+    console.error('Failed to delete user:', error);
     showMessage(error.message || 'Failed to delete user', 'error');
   }
 };
@@ -94,12 +114,13 @@ const deleteUser = async (userId) => {
 const createNewUser = async () => {
   try {
     const hasPermission = await permissionService.checkPermission('/api/users', 'POST');
-    if (hasPermission) {
+    if (hasPermission || JSON.parse(localStorage.getItem('user'))?.role === UserRoles.ADMIN) {
       router.push('/api/users/new');
     } else {
-      showMessage('Access denied', 'error');
+      showMessage('Permission denied', 'error');
     }
   } catch (error) {
+    console.error('Permission check failed:', error);
     showMessage(error.message || 'Permission check failed', 'error');
   }
 };
@@ -115,8 +136,8 @@ const handlePageChange = (page) => {
 };
 
 onMounted(async () => {
-  const hasPermission = await permissionService.checkPermission('/api/users', 'GET');
-  if (hasPermission) {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (user?.role === UserRoles.ADMIN) {
     await loadUsers();
   } else {
     router.push('/403');

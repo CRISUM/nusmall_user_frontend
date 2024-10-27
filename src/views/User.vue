@@ -34,6 +34,7 @@
   import { useRouter } from 'vue-router'
   import { getUserById } from '@/service/user'
   import avatarImage from '@/assets/pic/useravatar.png'
+  import { UserRoles } from '@/constants/authTypes' 
   import { getCurrentUserInfo } from '@/service/user';
   import { permissionService } from '@/service/permission';
   import { showMessage } from '@/utils/message'
@@ -66,18 +67,31 @@
 
   const checkPermission = async (path) => {
     try {
+      const userInfo = JSON.parse(localStorage.getItem('user'));
+      
+      // 如果是管理员，直接返回true
+      if (userInfo?.role === UserRoles.ADMIN) {
+        return true;
+      }
+      
       return await permissionService.checkPermission(path, 'GET');
-    } catch {
-      showMessage?.('Permission check failed: ' + error.message, 'error')
+    } catch (error) {
+      console.error('Permission check failed:', error);
+      showMessage?.('Permission check failed: ' + error.message, 'error');
       return false;
     }
   };
   
   const goTo = async (route) => {
-    if (await checkPermission(route)) {
-      router.push(route);
-    } else {
-      showMessage?.('Access denied', 'error')
+    try {
+      if (await checkPermission(route)) {
+        router.push(route);
+      } else {
+        showMessage?.('Access denied', 'error');
+      }
+    } catch (error) {
+      console.error('Navigation failed:', error);
+      showMessage?.('Navigation failed', 'error');
     }
   };
 

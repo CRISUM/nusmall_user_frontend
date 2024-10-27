@@ -29,6 +29,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { pageQuery } from '@/service/category';
+import { UserRoles } from '@/constants/authTypes'; 
 
 const router = useRouter();
 const route = useRoute();
@@ -81,28 +82,41 @@ const routes = computed(() => {
 });
 
 const checkAccess = async (route) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    
+    const hasPermission = await permissionService.checkPermission(
+      route.path,
+      'GET'
+    );
+    
+    return hasPermission;
+  } catch (error) {
+    console.error('Permission check failed:', error);
+    return false;
+  }
+};
 
-  const token = localStorage.getItem('token');
-  if (!token) return false;
-  
-  return await permissionService.checkIfHasPermission({
-    url: route.path,
-    method: route.meta?.httpMethod || 'GET',
-    token
-  });
+const goTo = async (route) => {
+  try {
+    // 如果是管理员，直接允许访问
+    if (userRole.value === UserRoles.ADMIN) {
+      router.push(route);
+      return;
+    }
 
-  // switch (route.access) {
-  //   case 'all':
-  //     return true;
-  //   case 'authenticated':
-  //     return !!userRole.value;
-  //   case 'admin':
-  //     return userRole.value === 'ADMIN';
-  //   case 'seller':
-  //     return userRole.value === 'SELLER';
-  //   default:
-  //     return false;
-  // }
+    // 对于非管理员，检查权限
+    const hasAccess = await checkAccess({ path: route });
+    if (hasAccess) {
+      router.push(route);
+    } else {
+      showMessage?.('Access denied', 'error');
+    }
+  } catch (error) {
+    console.error('Navigation failed:', error);
+    showMessage?.('Access denied', 'error');
+  }
 };
 
 const menuItems = computed(() => [
@@ -157,7 +171,10 @@ const loadCategories = async () => {
   }
 };
 
+watch(() => route.path, checkUserRole);
+
 onMounted(() => {
+  checkUserRole();
   if (userRole.value) {
     // 只有用户登录后才加载类别数据
     loadCategories();

@@ -10,16 +10,19 @@ const permissionCache = new Map();
 const getCacheKey = (url, method) => `${url}:${method}`;
 
 // 实际API权限服务
-const apiPermissionService = {
+export const permissionService = {
   async checkPermission(url, method) {
-    const cacheKey = getCacheKey(url, method);
-    
-    if (permissionCache.has(cacheKey)) {
-      return permissionCache.get(cacheKey);
-    }
-
     try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      
+      // Admin has all permissions
+      if (user?.role === UserRoles.ADMIN) {
+        return true;
+      }
+
       const token = localStorage.getItem('token');
+      if (!token) return false;
+
       const response = await userService.get('/permission', {
         params: { url, method },
         headers: {
@@ -27,13 +30,26 @@ const apiPermissionService = {
         }
       });
 
-      const result = response.success;
-      permissionCache.set(cacheKey, result);
-      
-      return result;
+      // 如果API返回false但是用户有正确的角色，依然返回true
+      if (!response && user) {
+        const allowedRoutes = {
+          '/api/users': [UserRoles.ADMIN],
+          '/api/user': [UserRoles.ADMIN],
+          '/api/orders': [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN]
+        };
+
+        const routeRoles = allowedRoutes[url];
+        if (routeRoles && routeRoles.includes(user.role)) {
+          return true;
+        }
+      }
+
+      return response;
     } catch (error) {
       console.error('Permission check failed:', error);
-      return false;
+      // 如果API检查失败，回退到基于角色的权限检查
+      const user = JSON.parse(localStorage.getItem('user'));
+      return user?.role === UserRoles.ADMIN;
     }
   },
 
@@ -42,9 +58,14 @@ const apiPermissionService = {
       const token = localStorage.getItem('token');
       if (!token) return false;
 
+      // Admin always has valid permissions
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (user?.role === UserRoles.ADMIN) {
+        return true;
+      }
+
       const response = await userService.post('/validateToken', { token });
-      
-      return response.success;
+      return response?.success ?? false;
     } catch (error) {
       console.error('Token validation failed:', error);
       return false;
@@ -55,39 +76,6 @@ const apiPermissionService = {
     permissionCache.clear();
   }
 };
-
-// Mock 权限服务 
-const mockPermissionService = {
-  async checkPermission(url, method) {
-    const cacheKey = getCacheKey(url, method);
-    
-    if (permissionCache.has(cacheKey)) {
-      return permissionCache.get(cacheKey);
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || !user.role) return false;
-
-    const result = hasPermission(user.role, url, method);
-    permissionCache.set(cacheKey, result);
-    
-    return result;
-  },
-
-  async validatePermissions() {
-    const token = localStorage.getItem('token');
-    return !!token;
-  },
-
-  clearCache() {
-    permissionCache.clear();
-  }
-};
-
-// 根据环境导出服务实例
-export const permissionService = ENV_CONFIG.USE_MOCK ? mockPermissionService : apiPermissionService;
 
 // 导出帮助函数 
 export const checkRoutePermission = async (route, user) => {

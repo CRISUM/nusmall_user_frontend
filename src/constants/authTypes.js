@@ -24,6 +24,7 @@ export const UserRoles = {
       '/api/user',
       '/api/product',
       '/api/getCurrentUserInfo',
+      '/api/orders',
       '/order/index',
       '/order/submitOrder',
       '/order/inner/paySuccess'
@@ -49,6 +50,7 @@ export const UserRoles = {
       '/api/product',
       '/api/inventory',
       '/api/users',
+      '/api/users/new', 
       '/api/merchant/products',
       '/api/getCurrentUserInfo',
       '/order/index',
@@ -126,8 +128,10 @@ export const UserRoles = {
   // Check if route is accessible for role
   export const isRouteAccessible = (userRole, path) => {
     if (!userRole) return false;
-    if (userRole === 'ADMIN') return true;
+    if (userRole === UserRoles.ADMIN) return true;
     
     const allowedRoutes = RoleRoutes[userRole] || [];
-    return allowedRoutes.some(route => path.startsWith(route));
+    return allowedRoutes.some(route => {
+        return path.startsWith(route) || route.startsWith(path);
+    });
   };
