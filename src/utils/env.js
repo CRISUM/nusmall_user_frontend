@@ -22,13 +22,13 @@ export const ENV = {
   TOKEN_PREFIX: 'Bearer',
 
   // Add new service URLs
-  PRODUCT_SERVICE_URL: import.meta.env.VITE_APP_PRODUCT_SERVICE_URL || 'http://nusmall.com:8081',
-  ORDER_SERVICE_URL: import.meta.env.VITE_APP_ORDER_SERVICE_URL || 'http://nusmall.com:8082',
-  INVENTORY_SERVICE_URL: import.meta.env.VITE_APP_INVENTORY_SERVICE_URL || 'http://nusmall.com:8083',
-  USER_SERVICE_URL: import.meta.env.VITE_APP_USER_SERVICE_URL || 'http://nusmall.com:8084',
-  AUTH_SERVICE_URL: import.meta.env.VITE_APP_AUTH_SERVICE_URL || 'http://nusmall.com:8085',
-  CART_SERVICE_URL: import.meta.env.VITE_APP_CART_SERVICE_URL || 'http://nusmall.com:8086',
-  CATEGORY_SERVICE_URL: import.meta.env.VITE_APP_CATEGORY_SERVICE_URL || 'http://nusmall.com:8081',
+  PRODUCT_SERVICE_URL: (import.meta.env.VITE_APP_PRODUCT_SERVICE_URL || 'http://nusmall.com:8070') + '/products',
+  ORDER_SERVICE_URL: (import.meta.env.VITE_APP_ORDER_SERVICE_URL || 'http://nusmall.com:8070') + '/orders',
+  INVENTORY_SERVICE_URL: (import.meta.env.VITE_APP_INVENTORY_SERVICE_URL || 'http://nusmall.com:8070') + '/inventories',
+  USER_SERVICE_URL: (import.meta.env.VITE_APP_USER_SERVICE_URL || 'http://nusmall.com:8070') + '/users',
+  AUTH_SERVICE_URL: import.meta.env.VITE_APP_AUTH_SERVICE_URL || 'http://nusmall.com:8070',
+  CART_SERVICE_URL: (import.meta.env.VITE_APP_CART_SERVICE_URL || 'http://nusmall.com:8070') + '/shoppingcarts',
+  CATEGORY_SERVICE_URL: import.meta.env.VITE_APP_CATEGORY_SERVICE_URL || 'http://nusmall.com:8070',
 };
 
 // Helper functions for environment checks

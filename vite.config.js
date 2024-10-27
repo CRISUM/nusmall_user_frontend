@@ -14,32 +14,32 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/user': {
-        target: 'http://nusmall.com:8084',
+      '/users': {
+        target: 'http://nusmall.com:8070',  // 统一指向网关
         changeOrigin: true
       },
-      '/api/product': {
-        target: 'http://nusmall.com:8081',
+      '/products': {
+        target: 'http://nusmall.com:8070',
         changeOrigin: true
       },
-      '/api/order': {
-        target: 'http://nusmall.com:8082', 
+      '/orders': {
+        target: 'http://nusmall.com:8070',
+        changeOrigin: true
+      }, 
+      '/shopping-carts': { // 改为kebab-case风格匹配后端
+        target: 'http://nusmall.com:8070',
         changeOrigin: true
       },
-      '/api/inventory': {
-        target: 'http://nusmall.com:8083',
+      '/inventories': {
+        target: 'http://nusmall.com:8070', 
         changeOrigin: true
       },
-      '/api/auth': {
-        target: 'http://nusmall.com:8085',
-        changeOrigin: true  
-      },
-      '/api/v1/cart': {  
-        target: 'http://nusmall.com:8086',
+      '/login': {          // 添加登录路径代理
+        target: 'http://nusmall.com:8070',
         changeOrigin: true
       },
-      '/category': {
-        target: 'http://nusmall.com:8081',
+      '/getCurrentUserInfo': {  // 添加获取用户信息路径代理 
+        target: 'http://nusmall.com:8070',
         changeOrigin: true
       }
     }

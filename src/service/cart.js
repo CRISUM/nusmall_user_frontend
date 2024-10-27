@@ -3,6 +3,7 @@
 import { userService } from '@/utils/axios';
 import * as mockService from '@/utils/mockService';
 import { isUseMock } from '@/utils/env';
+import { cartService } from '../utils/axios';
 
 /**
  * Actual API implementations for cart operations
@@ -15,7 +16,7 @@ const cartApi = {
   async getCart() {
     try {
       // TODO: Implement when backend is ready
-      const response = await userService.get('/api/v1/cart/items', {
+      const response = await cartService.get('/api/v1/cart/items', {
         headers: { authToken: localStorage.getItem('token') }
       });
       return response;
@@ -35,7 +36,7 @@ const cartApi = {
   async addToCart(productId, quantity, price) {
     try {
       // TODO: Implement when backend is ready
-      const response = await userService.post('/api/v1/cart/add-item', {
+      const response = await cartService.post('/api/v1/cart/add-item', {
         productId,
         quantity,
         price
@@ -58,7 +59,7 @@ const cartApi = {
   async updateItemQuantity(cartItemId, quantity) {
     try {
       // TODO: Implement when backend is ready
-      const response = await userService.put('/api/v1/cart/update-item-quantity', {
+      const response = await cartService.put('/api/v1/cart/update-item-quantity', {
         cartItemId,
         quantity
       }, {
@@ -80,7 +81,7 @@ const cartApi = {
   async updateItemSelected(cartItemId, isSelected) {
     try {
       // TODO: Implement when backend is ready
-      const response = await userService.put('/api/v1/cart/update-item-selected', null, {
+      const response = await cartService.put('/api/v1/cart/update-item-selected', null, {
         headers: { authToken: localStorage.getItem('token') },
         params: { cartItemId, isSelected }
       });
@@ -98,7 +99,7 @@ const cartApi = {
   async getSelectedItems() {
     try {
       // TODO: Implement when backend is ready
-      const response = await userService.get('/api/v1/cart/selected-items', {
+      const response = await cartService.get('/api/v1/cart/selected-items', {
         headers: { authToken: localStorage.getItem('token') }
       });
       return response;
@@ -116,7 +117,7 @@ const cartApi = {
   async removeItemFromCart(cartItemId) {
     try {
       // TODO: Implement when backend is ready
-      await userService.delete(`/api/v1/cart/remove-item/${cartItemId}`, {
+      await cartService.delete(`/api/v1/cart/remove-item/${cartItemId}`, {
         headers: { authToken: localStorage.getItem('token') }
       });
       //await mockService.deleteCartItem(cartItemId);
@@ -133,7 +134,7 @@ const cartApi = {
   async removeSelectedItems() {
     try {
       // TODO: Implement when backend is ready
-      await userService.delete('/api/v1/cart/remove-selected-items', {
+      await cartService.delete('/api/v1/cart/remove-selected-items', {
         headers: { authToken: localStorage.getItem('token') }
       });
       //await mockService.removeSelectedItems();
@@ -150,7 +151,7 @@ const cartApi = {
   async clearCart() {
     try {
       // TODO: Implement when backend is ready
-      await userService.delete('/api/v1/cart/clear', {
+      await cartService.delete('/api/v1/cart/clear', {
         headers: { authToken: localStorage.getItem('token') }
       });
       //await mockService.clearCart();
