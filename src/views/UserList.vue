@@ -34,10 +34,10 @@ import { useRouter } from 'vue-router'
 import { getAllUsers, deleteUser as deleteUserApi } from '@/service/user'
 import { permissionService } from '@/service/permission'
 import { UserRoles } from '@/constants/authTypes';
+import { showMessage } from '@/utils/message';
 
 const router = useRouter()
 const users = ref([])
-const showMessage = inject('showMessage')
 const loading = ref(false);
 const currentPage = ref(1);
 const pageSize = ref(10);

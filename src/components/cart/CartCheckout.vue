@@ -149,23 +149,22 @@ const startCheckout = async () => {
 };
 
 const validateStock = async () => {
-  const stockChecks = await Promise.all(
-    props.selectedItems.map(async item => {
-      const available = await checkStock(item.productId, item.quantity);
-      return {
-        item,
-        available
-      };
-    })
-  );
-
-  const itemsWithIssues = stockChecks.filter(check => !check.available);
-  if (itemsWithIssues.length > 0) {
-    throw new Error('Some items have insufficient stock');
+  try {
+    const stockChecks = await Promise.all(
+      props.selectedItems.map(async item => {
+        const available = await checkStock(item.productId, item.quantity);
+        if (!available) {
+          throw new Error(`Insufficient stock for product ${item.name}`);
+        }
+        return true;
+      })
+    );
+    return true;
+  } catch (error) {
+    throw error;
   }
-
-  return true;
 };
+
 </script>
 
 <template>

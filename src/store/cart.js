@@ -80,34 +80,22 @@ import { addToCart as addToCartService } from '@/service/cart';
     async initializeCart({ commit }) {
       commit('SET_LOADING', true);
       try {
-        const cartData = await getCart();
+        // 直接调用获取购物车项目的API
+        const cartItems = await getCart();
         
-        // Ensure we have a valid cart structure
-        const cart = {
-          cartId: cartData?.cartId || Date.now(),
-          userId: cartData?.userId || null,
-          cartItems: Array.isArray(cartData?.cartItems) ? cartData.cartItems : []
-        };
-        
-        commit('SET_CART', cart);
-        commit('SET_CART_ITEMS', cart.cartItems);
-        
-        // Update selected items - ensure we're working with an array
-        const selectedItems = Array.isArray(cart.cartItems) 
-          ? cart.cartItems.filter(item => item.isSelected)
-          : [];
-        commit('SET_SELECTED_ITEMS', selectedItems);
+        // 确保接收到的是数组
+        if (Array.isArray(cartItems)) {
+          commit('SET_CART_ITEMS', cartItems);
+          // 设置选中的商品
+          const selectedItems = cartItems.filter(item => item.isSelected);
+          commit('SET_SELECTED_ITEMS', selectedItems);
+        } else {
+          console.error('Invalid cart items format:', cartItems);
+          commit('SET_CART_ITEMS', []);
+          commit('SET_SELECTED_ITEMS', []);
+        }
       } catch (error) {
         console.error('Failed to initialize cart:', error);
-        commit('SET_ERROR', error.message);
-        // Initialize with empty cart on error
-        commit('SET_CART', {
-          cartId: Date.now(),
-          userId: null,
-          cartItems: []
-        });
-        commit('SET_CART_ITEMS', []);
-        commit('SET_SELECTED_ITEMS', []);
         commit('SET_ERROR', error.message);
       } finally {
         commit('SET_LOADING', false);
@@ -116,9 +104,20 @@ import { addToCart as addToCartService } from '@/service/cart';
     async addToCart({ commit, dispatch }, cartItem) {
       commit('SET_LOADING', true);
       try {
-        await addToCartService(cartItem);
-        await dispatch('initializeCart'); // Refresh cart data
+        // 确保调用正确的API endpoint
+        await addToCartService({
+          productId: cartItem.productId,
+          quantity: cartItem.quantity,
+          price: cartItem.price
+        });
+        
+        // 重新获取购物车数据
+        await dispatch('initializeCart');
+        
+        // 同步更新本地状态
+        commit('ADD_CART_ITEM', cartItem);
       } catch (error) {
+        console.error('Failed to add to cart:', error);
         commit('SET_ERROR', error.message);
         throw error;
       } finally {
@@ -136,10 +135,14 @@ import { addToCart as addToCartService } from '@/service/cart';
       }
     },
   
-    async updateQuantity({ commit, state }, { cartItemId, quantity }) {
+    async updateQuantity({ commit }, { cartItemId, quantity }) {
+      if (!cartItemId || quantity < 1) {
+        throw new Error('Invalid parameters');
+      }
+  
       commit('SET_LOADING', true);
       try {
-        await updateItemQuantity(state.cart.cartId, cartItemId, quantity);
+        await updateItemQuantity(cartItemId, quantity);
         commit('UPDATE_ITEM_QUANTITY', { cartItemId, quantity });
       } catch (error) {
         commit('SET_ERROR', error.message);
@@ -149,14 +152,19 @@ import { addToCart as addToCartService } from '@/service/cart';
       }
     },
   
-    async updateSelected({ commit, state }, { cartItemId, isSelected }) {
+
+    async updateSelected({ commit }, { cartItemId, isSelected }) {
+      if (!cartItemId) {
+        throw new Error('Invalid cart item ID');
+      }
+      
       commit('SET_LOADING', true);
       try {
-        await updateItemSelected(state.cart.cartId, cartItemId, isSelected);
+        await updateItemSelected(cartItemId, isSelected);
         commit('UPDATE_ITEM_SELECTED', { cartItemId, isSelected });
         
-        // Update selected items list
-        const selectedItems = await getSelectedItems(state.cart.cartId);
+        // 更新选中的商品列表
+        const selectedItems = await getSelectedItems();
         commit('SET_SELECTED_ITEMS', selectedItems);
       } catch (error) {
         commit('SET_ERROR', error.message);
@@ -165,11 +173,15 @@ import { addToCart as addToCartService } from '@/service/cart';
         commit('SET_LOADING', false);
       }
     },
+
+    async removeItem({ commit }, cartItemId) {
+      if (!cartItemId) {
+        throw new Error('Invalid cart item ID');
+      }
   
-    async removeItem({ commit, state }, cartItemId) {
       commit('SET_LOADING', true);
       try {
-        await removeItemFromCart(state.cart.cartId, cartItemId);
+        await removeItemFromCart(cartItemId);
         commit('REMOVE_CART_ITEM', cartItemId);
       } catch (error) {
         commit('SET_ERROR', error.message);

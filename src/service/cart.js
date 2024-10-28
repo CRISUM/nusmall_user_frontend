@@ -16,9 +16,8 @@ const cartApi = {
    */
   getCart: async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await cartService.get('/api/v1/cart/items', {
-        headers: { authToken: token }
+        headers: { 'authToken': localStorage.getItem('token') }
       });
       return response;
     } catch (error) {
@@ -34,17 +33,37 @@ const cartApi = {
    */
   addToCart: async (cartItem) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await cartService.post('/api/v1/cart/add-item', {
-        productId: cartItem.productId,
-        price: cartItem.price,
-        quantity: cartItem.quantity,
-      }, {
-        headers: { authToken: token }
+      const response = await cartService.post('/api/v1/cart/add-item', cartItem, {
+        headers: { 
+          'authToken': localStorage.getItem('token')
+        }
       });
       return response;
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      throw error;
+    }
+  },
+
+  updateInventoryAfterAdd: async (productId, quantity) => {
+    try {
+      // 先检查库存
+      const currentStock = await inventoryService.get(`/inventory?productId=${productId}`);
+      
+      // 确保有足够库存
+      if (currentStock < quantity) {
+        throw new Error('Insufficient stock');
+      }
+  
+      // 更新库存
+      await inventoryService.put('/inventory', {
+        productId,
+        availableStock: currentStock - quantity
+      }, {
+        headers: { 'authToken': localStorage.getItem('token') }
+      });
+    } catch (error) {
+      console.error('Failed to update inventory:', error);
       throw error;
     }
   },
@@ -56,12 +75,11 @@ const cartApi = {
    */
   updateItemQuantity: async (cartItemId, quantity) => {
     try {
-      const token = localStorage.getItem('token');
       const response = await cartService.put('/api/v1/cart/update-item-quantity', {
-        cartItemId,
-        quantity 
+        cartItemId: cartItemId,
+        quantity: quantity
       }, {
-        headers: { authToken: token }
+        headers: { 'authToken': localStorage.getItem('token') }
       });
       return response;
     } catch (error) {
@@ -75,18 +93,17 @@ const cartApi = {
    * Backend endpoint: PUT /api/v1/cart/update-item-selected
    */
   updateItemSelected: async (cartItemId, isSelected) => {
-    try { 
-      const token = localStorage.getItem('token');
+    try {
       const response = await cartService.put('/api/v1/cart/update-item-selected', null, {
-        headers: { authToken: token },
+        headers: { 'authToken': localStorage.getItem('token') },
         params: {
-          cartItemId,
-          isSelected
+          cartItemId: cartItemId,  // 确保cartItemId正确传递
+          isSelected: isSelected
         }
       });
       return response;
     } catch (error) {
-      console.error('Failed to update selection:', error);
+      console.error('Failed to update item selection:', error);
       throw error;
     }
   },
@@ -114,13 +131,15 @@ const cartApi = {
    */
   removeItemFromCart: async (cartItemId) => {
     try {
-      const token = localStorage.getItem('token');
+      if (!cartItemId) {
+        throw new Error('Invalid cart item ID');
+      }
       const response = await cartService.delete(`/api/v1/cart/remove-item/${cartItemId}`, {
-        headers: { authToken: token }
+        headers: { 'authToken': localStorage.getItem('token') }
       });
       return response;
     } catch (error) {
-      console.error('Failed to remove item:', error);
+      console.error('Failed to remove item from cart:', error);
       throw error;
     }
   },
@@ -170,5 +189,6 @@ export const {
   getSelectedItems,
   removeItemFromCart,
   removeSelectedItems,
+  updateInventoryAfterAdd,
   clearCart
 } = cartApi;

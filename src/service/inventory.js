@@ -98,11 +98,12 @@ const inventoryApi = {
    */
   async checkStock(productId, quantity) {
     try {
-      // TODO: Uncomment when backend is ready
-      const response = await userService.get('/inventory/check', {
-        params: { productId, quantity }
+      const response = await inventoryService.get('/inventory/check', {
+        params: { 
+          productId,
+          num: quantity
+        }
       });
-      //const response = await mockService.checkStock(productId, quantity);
       return response;
     } catch (error) {
       console.error('Failed to check stock:', error);

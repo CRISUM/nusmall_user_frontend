@@ -22,8 +22,15 @@ const itemToDelete = ref(null);
 
 // Computed properties
 const cart = computed(() => store.state.cart.cart);
-const cartItems = computed(() => store.state.cart.cartItems || []);
-const selectedItems = computed(() => store.state.cart.selectedItems);
+
+const cartItems = computed(() => {
+  return store.state.cart.cartItems || [];
+});
+
+const selectedItems = computed(() => {
+  return cartItems.value.filter(item => item.isSelected);
+});
+
 const hasSelectedItems = computed(() => store.getters['cart/hasSelectedItems']);
 const cartTotal = computed(() => {
   return cartItems.value.reduce((total, item) => {
@@ -113,15 +120,15 @@ const loadCartItems = async () => {
  * @param {number} cartItemId 
  * @param {boolean} isSelected 
  */
-const toggleItemSelection = async (cartItemId, isSelected) => {
-  if (processingItems.value.has(cartItemId)) return;
+ const toggleItemSelection = async (cartItemId, isSelected) => {
+  if (!cartItemId || processingItems.value.has(cartItemId)) return;
   
   processingItems.value.add(cartItemId);
   errorMessage.value = '';
   
   try {
     await store.dispatch('cart/updateSelected', {
-      cartItemId,
+      cartItemId: cartItemId,
       isSelected: !isSelected
     });
   } catch (error) {
@@ -165,7 +172,10 @@ const updateQuantity = async (cartItemId, newQuantity) => {
  * Remove item from cart
  * @param {number} cartItemId 
  */
-const removeItem = async (cartItemId) => {
+
+ const removeItem = async (cartItemId) => {
+  if (!cartItemId) return;
+  
   itemToDelete.value = cartItemId;
   showConfirmDialog.value = true;
 };
@@ -246,18 +256,15 @@ const checkout = async () => {
 };
 
 // Initialize cart
-onMounted(() => {
-  const initCart = async () => {
+onMounted(async () => {
+  try {
     loading.value = true;
-    try {
-      await store.dispatch('cart/initializeCart');
-    } catch (error) {
-      errorMessage.value = error.message;
-    } finally {
-      loading.value = false;
-    }
-  };
-  initCart();
+    await store.dispatch('cart/initializeCart');
+  } catch (error) {
+    errorMessage.value = error.message;
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 

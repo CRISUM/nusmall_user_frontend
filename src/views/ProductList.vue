@@ -1,6 +1,44 @@
 // src/views/ProductList.vue
 <!-- src/views/ProductList.vue -->
 <template>
+  <div v-if="showCartModal" class="modal">
+    <div class="modal-content">
+      <h3>Add to Cart</h3>
+      <div class="product-info">
+        <h4>{{ selectedProduct?.name }}</h4>
+        <p>Price: ¥{{ formatPrice(selectedProduct?.price) }}</p>
+      </div>
+      
+      <div class="quantity-control">
+        <button 
+          @click="quantity > 1 && quantity--"
+          :disabled="quantity <= 1"
+        >-</button>
+        <input 
+          type="number" 
+          v-model.number="quantity"
+          min="1"
+          :max="selectedProduct?.availableStock"
+        >
+        <button 
+          @click="quantity < selectedProduct?.availableStock && quantity++"
+          :disabled="quantity >= selectedProduct?.availableStock"
+        >+</button>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="secondary-btn" @click="closeCartModal">Cancel</button>
+        <button 
+          class="primary-btn" 
+          @click="confirmAddToCart"
+          :disabled="!quantity || quantity > selectedProduct?.availableStock"
+        >
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="product-list">
     <!-- Page Header 保持不变 -->
     <div class="page-header">
@@ -181,6 +219,7 @@ import { pageQuery } from '@/service/category';
 import { getCategoryName } from '@/utils/mockService';
 import { useStore } from 'vuex';
 import { addToCart as addToCartService } from '@/service/cart';
+import { showMessage } from '@/utils/message';
 
 // Auth
 const { userRole, isAdmin, isSeller } = useAuth()
@@ -236,32 +275,44 @@ const productForm = ref({
 //   updateUser: ''
 // });
 
-const handleAddToCart = async (product) => {
-  if (!product) return;
+
+// 在 script setup 中修改 handleAddToCart 方法
+const handleAddToCart = (product) => {
+  selectedProduct.value = product;
+  quantity.value = 1;
+  showCartModal.value = true;
+};
+
+// 添加确认加入购物车的方法
+const confirmAddToCart = async () => {
+  if (!selectedProduct.value) return;
   
   try {
     const cartItem = {
-      productId: product.productId,
-      quantity: 1,
-      price: product.price,
-      name: product.name,
-      imageUrl: product.imageUrl,
-      isSelected: true,
-      createUser: product.createUser,
-      updateUser: product.updateUser
+      productId: selectedProduct.value.productId,
+      quantity: quantity.value,
+      price: selectedProduct.value.price
     };
 
+    // 直接调用添加到购物车的action，后端会处理库存检查
     await store.dispatch('cart/addToCart', cartItem);
-    alert('Added to cart successfully!');
+    
+    showMessage('Added to cart successfully', 'success');
+    closeCartModal();
+    
+    // 可选：刷新商品列表以获取最新状态
+    await loadProducts();
   } catch (error) {
     console.error('Failed to add to cart:', error);
-    alert(error.message || 'Failed to add to cart');
+    showMessage(error.message || 'Failed to add to cart', 'error');
   }
 };
 
-const hasRelatedProducts = computed(() => {
-  return relatedProducts.value && relatedProducts.value.length > 0;
-});
+const closeCartModal = () => {
+  showCartModal.value = false;
+  selectedProduct.value = null;
+  quantity.value = 1;
+};
 
 const showAddProduct = ref(false);  
 
@@ -833,8 +884,54 @@ onMounted(async () => {
   }
 
   .quantity-control {
-    margin: 20px 0;
-  }
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.quantity-control button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.quantity-control input {
+  width: 60px;
+  text-align: center;
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.quantity-control button:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+}
 
 .quantity-input {
   display: flex;
