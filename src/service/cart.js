@@ -10,17 +10,17 @@ import { cartService } from '../utils/axios';
  */
 const cartApi = {
   /**
-   * Get cart for user
-   * @returns {Promise<Cart>}
+   * Get cart items
+   * Backend endpoint: GET /api/v1/cart/items
+   * @returns {Promise<Array<CartItem>>}
    */
-  async getCart() {
+  getCart: async () => {
     try {
-      // TODO: Implement when backend is ready
+      const token = localStorage.getItem('token');
       const response = await cartService.get('/api/v1/cart/items', {
-        headers: { authToken: localStorage.getItem('token') }
+        headers: { authToken: token }
       });
       return response;
-      //return mockService.getCart();
     } catch (error) {
       console.error('Failed to get cart:', error);
       throw error;
@@ -29,116 +29,113 @@ const cartApi = {
 
   /**
    * Add item to cart
-   * @param {number} productId
-   * @param {number} quantity
-   * @param {number} price
+   * Backend endpoint: POST /api/v1/cart/add-item
+   * @param {AddCartItemRequest} cartItem
    */
-  async addToCart(productId, quantity, price) {
+  addToCart: async (cartItem) => {
     try {
-      // TODO: Implement when backend is ready
+      const token = localStorage.getItem('token');
       const response = await cartService.post('/api/v1/cart/add-item', {
-        productId,
-        quantity,
-        price
+        productId: cartItem.productId,
+        price: cartItem.price,
+        quantity: cartItem.quantity,
       }, {
-        headers: { authToken: localStorage.getItem('token') }
+        headers: { authToken: token }
       });
       return response;
-      //return mockService.addToCart({ productId, quantity, price });
     } catch (error) {
-      console.error('Failed to add item to cart:', error);
+      console.error('Failed to add to cart:', error);
       throw error;
     }
   },
 
   /**
    * Update item quantity
-   * @param {number} cartItemId
-   * @param {number} quantity
+   * Backend endpoint: PUT /api/v1/cart/update-item-quantity 
+   * @param {UpdateCartItemQuantityRequest} request
    */
-  async updateItemQuantity(cartItemId, quantity) {
+  updateItemQuantity: async (cartItemId, quantity) => {
     try {
-      // TODO: Implement when backend is ready
+      const token = localStorage.getItem('token');
       const response = await cartService.put('/api/v1/cart/update-item-quantity', {
         cartItemId,
-        quantity
+        quantity 
       }, {
-        headers: { authToken: localStorage.getItem('token') }
+        headers: { authToken: token }
       });
       return response;
-      //return mockService.updateItemQuantity(cartItemId, quantity);
     } catch (error) {
-      console.error('Failed to update cart item:', error);
+      console.error('Failed to update quantity:', error);
       throw error;
     }
   },
 
   /**
    * Update item selection status
-   * @param {number} cartItemId 
-   * @param {boolean} isSelected
+   * Backend endpoint: PUT /api/v1/cart/update-item-selected
    */
-  async updateItemSelected(cartItemId, isSelected) {
-    try {
-      // TODO: Implement when backend is ready
+  updateItemSelected: async (cartItemId, isSelected) => {
+    try { 
+      const token = localStorage.getItem('token');
       const response = await cartService.put('/api/v1/cart/update-item-selected', null, {
-        headers: { authToken: localStorage.getItem('token') },
-        params: { cartItemId, isSelected }
+        headers: { authToken: token },
+        params: {
+          cartItemId,
+          isSelected
+        }
       });
       return response;
-      //return mockService.updateItemSelected(cartItemId, isSelected);
     } catch (error) {
-      console.error('Failed to update item selection:', error);
+      console.error('Failed to update selection:', error);
       throw error;
     }
   },
 
   /**
-   * Get selected items from cart
+   * Get selected items
+   * Backend endpoint: GET /api/v1/cart/selected-items
    */
-  async getSelectedItems() {
+  getSelectedItems: async () => {
     try {
-      // TODO: Implement when backend is ready
+      const token = localStorage.getItem('token');
       const response = await cartService.get('/api/v1/cart/selected-items', {
-        headers: { authToken: localStorage.getItem('token') }
+        headers: { authToken: token }
       });
       return response;
-      //return mockService.getSelectedItems();
     } catch (error) {
       console.error('Failed to get selected items:', error);
-      throw error;
+      throw error; 
     }
   },
 
   /**
    * Remove item from cart
-   * @param {number} cartItemId
+   * Backend endpoint: DELETE /api/v1/cart/remove-item/{cartItemId}
    */
-  async removeItemFromCart(cartItemId) {
+  removeItemFromCart: async (cartItemId) => {
     try {
-      // TODO: Implement when backend is ready
-      await cartService.delete(`/api/v1/cart/remove-item/${cartItemId}`, {
-        headers: { authToken: localStorage.getItem('token') }
+      const token = localStorage.getItem('token');
+      const response = await cartService.delete(`/api/v1/cart/remove-item/${cartItemId}`, {
+        headers: { authToken: token }
       });
-      //await mockService.deleteCartItem(cartItemId);
-      return true;
+      return response;
     } catch (error) {
-      console.error('Failed to remove cart item:', error);
+      console.error('Failed to remove item:', error);
       throw error;
     }
   },
 
   /**
-   * Remove selected items from cart
+   * Remove selected items
+   * Backend endpoint: DELETE /api/v1/cart/remove-selected-items
    */
-  async removeSelectedItems() {
+  removeSelectedItems: async () => {
     try {
-      // TODO: Implement when backend is ready
-      await cartService.delete('/api/v1/cart/remove-selected-items', {
-        headers: { authToken: localStorage.getItem('token') }
+      const token = localStorage.getItem('token');
+      const response = await cartService.delete('/api/v1/cart/remove-selected-items', {
+        headers: { authToken: token }
       });
-      //await mockService.removeSelectedItems();
-      return true;
+      return response;
     } catch (error) {
       console.error('Failed to remove selected items:', error);
       throw error;
@@ -147,15 +144,15 @@ const cartApi = {
 
   /**
    * Clear cart
+   * Backend endpoint: DELETE /api/v1/cart/clear
    */
-  async clearCart() {
+  clearCart: async () => {
     try {
-      // TODO: Implement when backend is ready
-      await cartService.delete('/api/v1/cart/clear', {
-        headers: { authToken: localStorage.getItem('token') }
+      const token = localStorage.getItem('token');
+      const response = await cartService.delete('/api/v1/cart/clear', {
+        headers: { authToken: token }
       });
-      //await mockService.clearCart();
-      return true;
+      return response;
     } catch (error) {
       console.error('Failed to clear cart:', error);
       throw error;
