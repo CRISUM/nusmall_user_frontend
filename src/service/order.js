@@ -34,8 +34,12 @@ const orderApi = {
    */
   async getOrderByUserId(userId) {
     try {
-      const response = await orderService.get('/order/index');
-      return response.data;
+      const response = await orderService.get('/order/index', {
+        headers: {
+          'authToken': localStorage.getItem('token')
+        }
+      });
+      return response;
     } catch (error) {
       console.error('Failed to get orders:', error);
       throw error;
