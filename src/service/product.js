@@ -153,17 +153,17 @@ const apiService = {
    */
   getProductById: async (id) => {
     try {
-      const response = await productService.get('/product', {
-        params: { productId: id } // 修改为使用productId作为query参数
-      });
-      
-      // 检查响应格式
-      if (response?.success && response?.data) {
-        return response.data;
+      const response = await productService.get(`/product/${id}`);
+      if (response?.data) {
+        return {
+          ...response.data,
+          // 提供基本的库存状态信息给普通用户
+          availableStock: response.data.availableStock > 0
+        };
       }
-      throw new Error('Invalid product response format');
+      throw new Error('Product not found');
     } catch (error) {
-      console.error('Failed to get product:', error); 
+      console.error('Failed to get product:', error);
       throw error;
     }
   },

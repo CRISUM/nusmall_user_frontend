@@ -48,12 +48,23 @@
           <div class="current-price">¥{{ product.price.toFixed(2) }}</div>
         </div>
 
-        <div class="stock-section">
-          <StockLevel 
-            :productId="product.productId"
-            :showCount="true"
-            class="stock-indicator"
-          />
+        <!-- 只在卖家/管理员角色下显示库存信息 -->
+        <div class="stock-status">
+          <span :class="stockStatusClass">
+            {{ stockStatusText }}
+          </span>
+        </div>
+
+        <!-- 用户角色只需要显示是否有货即可 -->
+        <div class="stock-status">
+          <span :class="product.availableStock > 0 ? 'in-stock' : 'out-of-stock'">
+            {{ product.availableStock > 0 ? `In Stock (${product.availableStock})` : 'Out of Stock' }}
+          </span>
+        </div>
+
+            <!-- 商品管理相关功能只对卖家和管理员显示 -->
+        <div v-if="['SELLER', 'ADMIN'].includes(userRole)" class="management-actions">
+          <!-- 库存管理等功能 -->
         </div>
 
         <div class="description-section">
@@ -157,7 +168,6 @@
   import { useRouter, useRoute } from 'vue-router';
   import { useStore } from 'vuex';
   import { addToCart as addToCartService } from '@/service/cart';
-  import StockLevel from '@/components/StockLevel.vue';
   import { useAuth } from '@/composables/useAuth';
   import { checkStock } from '@/service/inventory';
   import { 
@@ -179,10 +189,7 @@ import { getInventory } from '@/service/inventory';
   const error = ref(null);
   const showSuccessModal = ref(false);
   
-  const userRole = computed(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    return user?.role || 'CUSTOMER';
-  });
+  const { userRole } = useAuth()
 
   const hasRelatedProducts = computed(() => {
     return relatedProducts.value && relatedProducts.value.length > 0;
@@ -194,6 +201,19 @@ import { getInventory } from '@/service/inventory';
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
+
+  const stockStatusClass = computed(() => {
+    if (!product.value?.availableStock) return 'out-of-stock';
+    if (product.value.availableStock < 10) return 'low-stock';
+    return 'in-stock';
+  });
+
+  const stockStatusText = computed(() => {
+    if (!product.value?.availableStock) return 'Out of Stock';
+    if (product.value.availableStock < 10) 
+      return `Low Stock (${product.value.availableStock} left)`;
+    return `In Stock (${product.value.availableStock} available)`;
+  });
     
   const loadProductDetails = async () => {
     try {
@@ -285,47 +305,30 @@ import { getInventory } from '@/service/inventory';
       error.value = null;
       const productId = parseInt(route.params.id);
       
-      if (!productId) {
-        throw new Error('Invalid product ID');
-      }
+      // 使用 consumer API 获取商品信息(包含库存)
+      const response = await getProductById(productId);
+      
+      if (response.success && response.data) {
+        product.value = response.data;
 
-      // 并行获取商品信息和库存信息
-      const [productResponse, stockResponse] = await Promise.all([
-        getProductById(productId),
-        getInventory(null, productId)
-      ]);
-
-      if (!productResponse?.data) {
-        throw new Error('Product not found');
-      }
-
-      // 合并商品信息和库存信息
-      product.value = {
-        ...productResponse.data,
-        availableStock: stockResponse || 0
-      };
-
-      // 加载分类名称和相关商品
-      if (product.value.categoryId) {
-        try {
-          const categoryProducts = await getAllProducts({
+        // 加载相关商品
+        if (product.value.categoryId) {
+          const relatedResponse = await getAllProducts({
             page: 1,
             pageSize: 4,
-            categoryId: product.value.categoryId
+            categoryId: product.value.categoryId,
+            excludeProductId: productId
           });
           
-          if (categoryProducts?.data?.records) {
-            // 过滤掉当前商品
-            relatedProducts.value = categoryProducts.data.records.filter(
+          if (relatedResponse.success && relatedResponse.data) {
+            relatedProducts.value = relatedResponse.data.records.filter(
               p => p.productId !== productId
             );
           }
-        } catch (err) {
-          console.warn('Failed to load related products:', err);
-          relatedProducts.value = []; // 设置默认空数组
         }
+      } else {
+        throw new Error('Failed to load product details');
       }
-
     } catch (err) {
       console.error('Failed to load product:', err);
       error.value = err.message;
@@ -376,15 +379,11 @@ import { getInventory } from '@/service/inventory';
   };
 
   const handleAddToCart = async () => {
-    if (!product.value) return;
+    if (!product.value?.availableStock) return;
     
     try {
-      const stockAvailable = await checkStock(
-        product.value.productId,
-        quantity.value
-      );
-      
-      if (!stockAvailable) {
+      // 直接使用 API 返回的库存信息进行检查
+      if (quantity.value > product.value.availableStock) {
         throw new Error('Insufficient stock');
       }
 
@@ -398,11 +397,12 @@ import { getInventory } from '@/service/inventory';
         imageUrl: product.value.imageUrl,
         isSelected: true,
         createUser: currentUser.username || 'system',
-        updateUser: currentUser.username || 'system'
+        updateUser: currentUser.username || 'system',
+        availableStock: product.value.availableStock // 添加库存信息
       };
 
       await store.dispatch('cart/addToCart', cartItem);
-      alert('Added to cart successfully!');
+      showSuccessModal.value = true;
     } catch (error) {
       console.error('Failed to add to cart:', error);
       alert(error.message || 'Failed to add to cart');
@@ -480,9 +480,22 @@ import { getInventory } from '@/service/inventory';
     display: inline-block;
   }
   
-  .stock-status.out-of-stock {
-    background: #ffebee;
-    color: #c62828;
+  .out-of-stock {
+    background-color: #fff2f0;
+    color: #ff4d4f;
+    border: 1px solid #ffccc7;
+  }
+
+  .low-stock {
+    background-color: #fffbe6;
+    color: #faad14;
+    border: 1px solid #ffe58f;
+  }
+
+  .in-stock {
+    background-color: #f6ffed;
+    color: #52c41a;
+    border: 1px solid #b7eb8f;
   }
   
   .cart-actions {

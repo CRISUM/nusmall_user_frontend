@@ -59,21 +59,24 @@
     return new Date(date).toLocaleString();
   };
   
-  onMounted(async () => {
-    try {
-      const orderId = parseInt(route.params.orderId);
-      const user = JSON.parse(localStorage.getItem('user'));
-      const orders = await getOrderByUserId(user.id);
-      order.value = orders.find(o => o.orderId === orderId);
-      
-      if (!order.value) {
-        throw new Error('Order not found');
+  onMounted(() => {
+    const loadOrder = async () => {
+      try {
+        const orderId = parseInt(route.params.orderId);
+        const user = JSON.parse(localStorage.getItem('user'));
+        const orders = await getOrderByUserId(user.id);
+        order.value = orders.find(o => o.orderId === orderId);
+        
+        if (!order.value) {
+          throw new Error('Order not found');
+        }
+      } catch (err) {
+        error.value = err.message;
+      } finally {
+        loading.value = false;
       }
-    } catch (err) {
-      error.value = err.message;
-    } finally {
-      loading.value = false;
-    }
+    };
+    loadOrder();
   });
   </script>
   

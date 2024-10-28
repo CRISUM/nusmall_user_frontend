@@ -16,7 +16,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useAuth } from '@/composables/useAuth';
 import { getInventory } from '@/service/inventory';
 
 const props = defineProps({
@@ -38,6 +39,10 @@ const props = defineProps({
 const stockCount = ref(0);
 const loading = ref(false);
 const error = ref(null);
+const { userRole } = useAuth();
+const shouldShowStock = computed(() => {
+  return ['SELLER', 'ADMIN'].includes(userRole.value);
+});
 
 const displayText = computed(() => {
   if (loading.value) return 'Loading...';
@@ -49,6 +54,7 @@ const displayText = computed(() => {
 
 // 只在组件挂载时获取一次库存
 const fetchStock = async () => {
+  if (!shouldShowStock.value) return;
   if (!props.productId) return;
   
   try {

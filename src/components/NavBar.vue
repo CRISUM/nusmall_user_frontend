@@ -46,8 +46,6 @@ const isAdmin = computed(() => userRole.value === 'ADMIN');
 const isSeller = computed(() => userRole.value === 'SELLER');
 const isCustomer = computed(() => userRole.value === 'CUSTOMER');
 
-onMounted(checkUserRole);
-
 // 监听路由变化，重新检查用户角色
 watch(() => route.path, checkUserRole);
 

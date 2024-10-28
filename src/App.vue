@@ -52,27 +52,18 @@ watch(
 );
 
 // Lifecycle hooks
-onMounted(async () => {
-  // 检查用户状态
-  const user = JSON.parse(localStorage.getItem('user'));
-  const token = localStorage.getItem('token');
-  
-  console.log('App mounted:', {
-    hasUser: !!user,
-    userRole: user?.role,
-    hasToken: !!token,
-    currentRoute: router.currentRoute.value.path
-  });
-
-  // 初始化 store 和错误提示
-  try {
-    await store.dispatch('user/initializeUser'); // 确保您的 store 中有这个 action
-    if (errorMessage.value) {
-      provide('showMessage', errorMessage.value.showMessage);
+onMounted(() => {
+  const init = async () => {
+    try {
+      await store.dispatch('user/initializeUser');
+      if (errorMessage.value) {
+        provide('showMessage', errorMessage.value.showMessage);
+      }
+    } catch (error) {
+      console.error('Failed to initialize app:', error);
     }
-  } catch (error) {
-    console.error('Failed to initialize app:', error);
   }
+  init();
 });
 
 // Error handling

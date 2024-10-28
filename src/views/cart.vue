@@ -4,7 +4,6 @@ import { computed, onMounted, ref } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import { ServiceFacade } from '@/service/facade';
-import StockLevel from '@/components/StockLevel.vue';
 import { useAuth } from '@/composables/useAuth';
 import { InventoryStatus } from '@/constants/cartTypes';
 
@@ -33,6 +32,7 @@ const cartTotal = computed(() => {
     return total + (itemPrice * itemQuantity);
   }, 0);
 });
+
 const selectedTotal = computed(() => {
   return selectedItems.value.reduce((total, item) => {
     const itemPrice = Number(item.price) || 0;
@@ -40,6 +40,22 @@ const selectedTotal = computed(() => {
     return total + (itemPrice * itemQuantity);
   }, 0);
 });
+
+const getStockStatusClass = (item) => {
+  if (!item.availableStock) return 'out-of-stock';
+  if (item.availableStock < item.quantity) return 'insufficient-stock';
+  if (item.availableStock < 10) return 'low-stock';
+  return 'in-stock';
+};
+
+const getStockStatusText = (item) => {
+  if (!item.availableStock) return 'Out of Stock';
+  if (item.availableStock < item.quantity) 
+    return `Insufficient Stock (only ${item.availableStock} available)`;
+  if (item.availableStock < 10) 
+    return `Low Stock (${item.availableStock} left)`;
+  return `In Stock (${item.availableStock})`;
+};
 
 // Helper functions
 const formatPrice = (price) => {
@@ -230,15 +246,18 @@ const checkout = async () => {
 };
 
 // Initialize cart
-onMounted(async () => {
-  loading.value = true;
-  try {
-    await store.dispatch('cart/initializeCart');
-  } catch (error) {
-    errorMessage.value = error.message;
-  } finally {
-    loading.value = false;
-  }
+onMounted(() => {
+  const initCart = async () => {
+    loading.value = true;
+    try {
+      await store.dispatch('cart/initializeCart');
+    } catch (error) {
+      errorMessage.value = error.message;
+    } finally {
+      loading.value = false;
+    }
+  };
+  initCart();
 });
 </script>
 
@@ -310,7 +329,9 @@ onMounted(async () => {
                           :disabled="processingItems.has(item.cartItemId)">+</button>
                 </div>
 
-                <StockLevel :productId="item.productId" />
+                <div class="stock-status" :class="getStockStatusClass(item)">
+                  {{ getStockStatusText(item) }}
+                </div>
                 
                 <p class="subtotal">
                   Subtotal: <span>¥{{ formatPrice(item.price * (item.quantity || 1)) }}</span>

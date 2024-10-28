@@ -1,7 +1,6 @@
 // src/components/cart/CartItem.vue
 <script setup>
 import { computed } from 'vue';
-import StockLevel from '@/components/StockLevel.vue';
 import { CartItemStatus, CartValidation, formatPrice } from '@/constants/cartTypes';
 
 const props = defineProps({
@@ -52,6 +51,18 @@ const decrementQuantity = () => {
     emit('update:quantity', props.item.quantity - 1);
   }
 };
+
+const stockStatusClass = computed(() => {
+  if (!item.value?.availableStock) return 'out-of-stock';
+  if (item.value.availableStock < 10) return 'low-stock';
+  return 'in-stock';
+});
+
+const stockStatusText = computed(() => {
+  if (!item.value?.availableStock) return 'Out of Stock';
+  if (item.value.availableStock < 10) return `Low Stock (${item.value.availableStock} left)`;
+  return `In Stock (${item.value.availableStock})`;
+});
 </script>
 
 <template>
@@ -88,10 +99,9 @@ const decrementQuantity = () => {
         <p class="item-price">{{ formatPrice(item.price) }}</p>
 
         <!-- Stock Status -->
-        <StockLevel 
-          :productId="item.productId"
-          class="stock-status"
-        />
+        <div class="stock-status" :class="stockStatusClass">
+          {{ stockStatusText }}
+        </div>
 
         <!-- Quantity Control -->
         <div class="quantity-control">

@@ -44,14 +44,6 @@ const pageSize = ref(10);
 const total = ref(0);
 const searchQuery = ref('');
 
-onMounted(async () => {
-  try {
-    users.value = await getAllUsers()
-  } catch (error) {
-    showMessage('Failed to fetch users', 'error')
-  }
-})
-
 const loadUsers = async () => {
   try {
     loading.value = true;
@@ -135,6 +127,10 @@ const handlePageChange = (page) => {
   currentPage.value = page;
   loadUsers();
 };
+
+// onMounted(() => {
+//   loadUsers();
+// });
 
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user'));
