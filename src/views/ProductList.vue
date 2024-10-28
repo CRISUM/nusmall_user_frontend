@@ -19,13 +19,14 @@
           <input 
             v-model="searchQuery"
             type="text"
-            placeholder="Search products..."
-            class="search-input"
+            :placeholder="userRole === 'SELLER' ? 'Search by name...' : 'Search by name or description...'"
+            @input="handleSearch"
           />
+          
+          <!-- Category filter for both roles -->
           <select 
             v-model="selectedCategory"
             @change="handleCategoryChange"
-            class="category-select"
           >
             <option value="">All Categories</option>
             <option 
@@ -35,11 +36,6 @@
             >
               {{ category.categoryName }}
             </option>
-          </select>
-          <select v-model="sortBy" class="sort-select">
-            <option value="newest">Newest First</option>
-            <option value="price-low">Price Low to High</option>
-            <option value="price-high">Price High to Low</option>
           </select>
         </div>
       </div>
@@ -699,42 +695,67 @@ const loadProducts = async () => {
   try {
     loading.value = true;
     const token = localStorage.getItem('token');
-    let result;
-
-    if (userRole.value === 'SELLER') {
-      // For sellers, get their own products
-      result = await getProductsByMerchant(token);
-    } else {
-      // For others (admin/customer), get all products
-      result = await getAllProducts();
-    }
     
-    // Transform data to ensure consistent structure
-    if (result && result.records) {
-      products.value = result.records.map(product => ({
+    // 构造查询参数
+    const queryParams = {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      name: searchQuery.value || undefined,
+      categoryId: selectedCategory.value || undefined
+    };
+
+    let result;
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    if (user?.role === 'SELLER') {
+      // Merchant view - 使用merchant API
+      result = await getProductsByMerchant(token, queryParams);
+    } else {
+      // Consumer view - 使用consumer API
+      result = await getAllProducts(queryParams);
+    }
+
+    console.log('Products API response:', result); // 添加日志
+
+    // 检查返回的数据结构
+    if (result?.success && result?.data) {
+      // Transform product data
+      products.value = result.data.records.map(product => ({
         ...product,
-        productId: product.productId || product.id, // Ensure productId exists
+        productId: product.productId || product.id,
         price: Number(product.price) || 0,
         availableStock: Number(product.availableStock) || 0,
         imageUrl: product.imageUrl || '/api/placeholder/400/320',
         name: product.name || 'Unnamed Product',
         description: product.description || 'No description available'
       }));
-      total.value = result.total || products.value.length;
+      
+      total.value = result.data.total || 0;
+    } else {
+      console.error('Invalid product data structure:', result);
+      products.value = [];
+      total.value = 0;
     }
   } catch (error) {
     console.error('Failed to load products:', error);
     error.value = error.message;
+    products.value = []; // 确保Products至少是空数组
   } finally {
     loading.value = false;
   }
 };
-
-
 // Initialize
 onMounted(async () => {
-  await store.dispatch('cart/fetchCartItems')
-  await loadProducts()
+  // 首先加载产品列表
+  await loadProducts();
+
+  // 然后尝试加载购物车，但不影响产品显示
+  try {
+    await store.dispatch('cart/fetchCartItems');
+  } catch (error) {
+    console.warn('Shopping cart service unavailable:', error);
+    // 购物车加载失败不应该影响产品列表显示
+  }
 });
 
 </script>

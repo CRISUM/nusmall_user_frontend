@@ -6,30 +6,56 @@ import { isUseMock } from '@/utils/env';
 // API Implementation
 const apiService = {
   /**
-   * Get all products with pagination
-   * Backend endpoint: GET /product/page/consumer
+   * Get products for consumers with pagination
+   * Backend endpoint: GET /product/page/consumer 
+   * @param {Object} queryParams Query parameters
+   * @returns {Promise<Object>} Paginated products
    */
-  getAllProducts: async (queryParams) => {
+  getAllProducts: async (queryParams = {}) => {
     try {
       const response = await productService.get('/product/page/consumer', {
-        params: queryParams
+        params: {
+          page: queryParams.page || 1,
+          pageSize: queryParams.pageSize || 10,
+          name: queryParams.name,
+          description: queryParams.description,
+          categoryId: queryParams.categoryId
+        }
       });
-      return response.data;
+
+      // 确保返回正确的数据结构
+      if (response?.data) {
+        return response;
+      }
+      
+      throw new Error('Invalid response format');
     } catch (error) {
-      console.error('Failed to get products:', error);
+      console.error('Product service error:', error);
       throw error;
     }
   },
   
   /**
-   * Get merchant products with pagination
+   * Get products for merchants with pagination
    * Backend endpoint: GET /product/page/merchant
+   * Only returns products created by the merchant
+   * @param {string} authToken Merchant auth token
+   * @param {Object} queryParams Query parameters
+   * @returns {Promise<Object>} Paginated products
    */
-  getProductsByMerchant: async (authToken, queryParams) => {
+  getProductsByMerchant: async (authToken, queryParams = {}) => {
     try {
+      // Merchant pagination params - includes sellerId from token
+      const params = {
+        page: queryParams.page || 1,
+        pageSize: queryParams.pageSize || 10,
+        name: queryParams.name,      // 支持模糊查询
+        categoryId: queryParams.categoryId,  // 精确匹配
+      };
+
       const response = await productService.get('/product/page/merchant', {
         headers: { authToken },
-        params: queryParams
+        params: params
       });
       return response.data;
     } catch (error) {

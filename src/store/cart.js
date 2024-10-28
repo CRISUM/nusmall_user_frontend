@@ -128,9 +128,11 @@ import { addToCart as addToCartService } from '@/service/cart';
     async fetchCartItems({ commit }) {
       try {
         const items = await getCart();
-        commit('SET_CART_ITEMS', items);
+        commit('SET_CART_ITEMS', items?.cartItems || []);
       } catch (error) {
         console.error('Failed to fetch cart items:', error);
+        // 不要在这里设置全局错误状态
+        commit('SET_CART_ITEMS', []); // 设置空数组作为默认值
       }
     },
   
