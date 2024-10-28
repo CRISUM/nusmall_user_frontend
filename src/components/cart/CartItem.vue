@@ -13,10 +13,12 @@ const props = defineProps({
         'cartItemId',
         'productId',
         'price',
+        'name',
         'quantity',
         'isSelected',
         'createUser',
         'updateUser',
+        'imageUrl',
         'createDatetime',
         'updateDatetime'
       ].every(key => key in value)

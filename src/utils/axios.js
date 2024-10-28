@@ -60,6 +60,7 @@ export const inventoryService = createServiceInstance(ENV.INVENTORY_SERVICE_URL)
 export const cartService = createServiceInstance(ENV.CART_SERVICE_URL);
 export const authService = createServiceInstance(ENV.AUTH_SERVICE_URL);
 export const categoryService = createServiceInstance(ENV.CATEGORY_SERVICE_URL);
+export const paymentService = createServiceInstance(ENV.PAYMENT_SERVICE_URL); 
 
 // 默认实例
 export default createServiceInstance(ENV.API_BASE_URL);

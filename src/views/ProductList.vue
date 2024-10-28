@@ -291,7 +291,8 @@ const confirmAddToCart = async () => {
     const cartItem = {
       productId: selectedProduct.value.productId,
       quantity: quantity.value,
-      price: selectedProduct.value.price
+      price: selectedProduct.value.price,
+      imageUrl: selectedProduct.value.imageUrl
     };
 
     // 直接调用添加到购物车的action，后端会处理库存检查

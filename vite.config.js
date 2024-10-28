@@ -49,6 +49,10 @@ export default defineConfig({
       '/category': {
         target: 'http://nusmall.com:8070',
         changeOrigin: true
+      },
+      '/api/payment': {         
+        target: 'http://nusmall.com:8085',
+        changeOrigin: true
       }
     }
   }

@@ -6,6 +6,7 @@ import * as orderService from './order';
 import * as permissionService from './permission';
 import store from '@/store';
 import { useAuth } from '@/composables/useAuth';
+import * as paymentService from './payment';
 
 /**
  * Service facade for handling complex business operations
@@ -77,18 +78,23 @@ export const ServiceFacade = {
       //   throw new Error('Some items are out of stock');
       // }
 
-      // 2. Submit order
-      // const orderId = await orderService.submitOrder({
-      //   userId: cartData.userId,
-      //   totalPrice: cartData.total,
-      //   cartInfoList: cartData.items
-      // });
-      const orderId = 1;
+      //2. Submit order
+      const response = await orderService.submitOrder({
+        userId: cartData.userId,
+        totalPrice: cartData.total,
+        cartInfoList: cartData.items
+      });
+      const orderId = response.data;
+      //const orderId = 1;
       
+      // 2. Process payment
+      const paymentResult = await paymentService.payOrder(orderId);
 
-      // 3. Clear cart
-      const { authToken } = useAuth();
-      await store.dispatch('cart/remove-selected-items', authToken);
+      // 3. Clear cart (only if payment successful)
+      if(paymentResult) {
+        const { authToken } = useAuth();
+        await store.dispatch('cart/remove-selected-items', authToken);
+      }
 
       return orderId;
     } catch (error) {

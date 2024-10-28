@@ -29,6 +29,8 @@ export const ENV = {
   AUTH_SERVICE_URL: import.meta.env.VITE_APP_AUTH_SERVICE_URL || 'http://nusmall.com:8070',
   CART_SERVICE_URL: (import.meta.env.VITE_APP_CART_SERVICE_URL || 'http://nusmall.com:8070') + '/shoppingcarts',
   CATEGORY_SERVICE_URL: (import.meta.env.VITE_APP_CATEGORY_SERVICE_URL || 'http://nusmall.com:8070') + '/products',
+  PAYMENT_SERVICE_URL: (import.meta.env.VITE_APP_PAYMENT_SERVICE_URL || 'http://nusmall.com:8085') , 
+
 };
 
 // Helper functions for environment checks

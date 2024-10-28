@@ -27,7 +27,10 @@ import { addToCart as addToCartService } from '@/service/cart';
     },
     SET_CART_ITEMS(state, items) {
       // Ensure items is always an array
-      state.cartItems = Array.isArray(items) ? items : [];
+      state.cartItems = Array.isArray(items) ? items.map(item => ({
+        ...item,
+        imageUrl: item.imageUrl
+      })) : [];
       // Also update cart object
       if (state.cart) {
         state.cart.cartItems = state.cartItems;
@@ -48,7 +51,10 @@ import { addToCart as addToCartService } from '@/service/cart';
       if (existingItem) {
         existingItem.quantity += item.quantity;
       } else {
-        state.cartItems.push(item);
+        state.cartItems.push({
+          ...item,
+          imageUrl: item.imageUrl 
+        });
       }
       // Also update cart object
       state.cart.cartItems = state.cartItems;
@@ -108,7 +114,8 @@ import { addToCart as addToCartService } from '@/service/cart';
         await addToCartService({
           productId: cartItem.productId,
           quantity: cartItem.quantity,
-          price: cartItem.price
+          price: cartItem.price,
+          imageUrl: cartItem.imageUrl
         });
         
         // 重新获取购物车数据
