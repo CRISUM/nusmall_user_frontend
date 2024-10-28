@@ -20,6 +20,8 @@ const isProcessingCheckout = ref(false);
 const showConfirmDialog = ref(false);
 const itemToDelete = ref(null);
 
+const showPaymentSuccess = ref(false);
+
 // Computed properties
 const cart = computed(() => store.state.cart.cart);
 
@@ -215,6 +217,15 @@ const removeSelectedItems = async () => {
   }
 };
 
+const showPaymentPopup = () => {
+  return new Promise((resolve) => {
+    showPaymentSuccess.value = true;
+    setTimeout(() => {
+      showPaymentSuccess.value = false;
+      resolve();
+    }, 3000); // 显示3秒后自动关闭
+  });
+};
 /**
  * Process checkout for selected items
  */
@@ -240,10 +251,7 @@ const checkout = async () => {
 
     const orderId = await ServiceFacade.processCheckout(checkoutData);
     
-    store.dispatch('notification/show', {
-      type: 'success',
-      message: 'Order placed successfully!'
-    });
+    await showPaymentPopup();
 
     router.push(`/api/orders/${orderId}`);
   } catch (error) {
@@ -251,6 +259,11 @@ const checkout = async () => {
   } finally {
     isProcessingCheckout.value = false;
   }
+};
+
+const goToOrderPage = () => {
+  showPaymentSuccess.value = false;
+  router.push(`/api/orders/${orderId}`);
 };
 
 // Initialize cart
@@ -268,6 +281,15 @@ onMounted(async () => {
 
 <template>
   <div class="cart-page">
+    <!-- Success checkout -->
+    <div v-if="showPaymentSuccess" class="payment-success-modal">
+      <div class="modal-content">
+        <h2>Payment Success</h2>
+        <p>Your order has been placed successfully!</p>
+        <button @click="goToOrderPage">Go to Order</button>
+      </div>
+    </div>
+
     <!-- Error Message -->
     <div v-if="errorMessage" class="error-message">
       <i class="error-icon"></i>
@@ -568,6 +590,41 @@ onMounted(async () => {
     bottom: 0;
     left: 0;
     right: 0;
+  }
+
+  .payment-success-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    width: 300px;
+  }
+
+  .modal-content h2 {
+    margin-bottom: 10px;
+  }
+
+  .modal-content button {
+    margin-top: 20px;
+    padding: 8px 16px;
+    border: none;
+    background-color: #1baeae;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
   }
 }
 </style>

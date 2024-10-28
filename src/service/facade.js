@@ -5,6 +5,7 @@ import * as inventoryService from './inventory';
 import * as orderService from './order';
 import * as permissionService from './permission';
 import store from '@/store';
+import { useAuth } from '@/composables/useAuth';
 
 /**
  * Service facade for handling complex business operations
@@ -77,14 +78,17 @@ export const ServiceFacade = {
       // }
 
       // 2. Submit order
-      const orderId = await orderService.submitOrder({
-        userId: cartData.userId,
-        totalPrice: cartData.total,
-        cartInfoList: cartData.items
-      });
+      // const orderId = await orderService.submitOrder({
+      //   userId: cartData.userId,
+      //   totalPrice: cartData.total,
+      //   cartInfoList: cartData.items
+      // });
+      const orderId = 1;
+      
 
       // 3. Clear cart
-      await store.dispatch('cart/clearCart');
+      const { authToken } = useAuth();
+      await store.dispatch('cart/remove-selected-items', authToken);
 
       return orderId;
     } catch (error) {

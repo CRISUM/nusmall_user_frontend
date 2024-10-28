@@ -54,7 +54,7 @@ const orderApi = {
    */
   async submitOrder(submitOrderParam) {
     try {
-      const response = await orderService.get(`/order/trade`,{
+      const response = await orderService.get(`/order/checkout`,{
         headers: {
           'authToken': localStorage.getItem('token')
         }
@@ -91,15 +91,15 @@ const orderApi = {
   },
 
   // 修改 - 提交订单
-  async submitOrder(orderData) {
-    try {
-      const response = await orderService.post('/order/submitOrder', orderData);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to submit order:', error);
-      throw error;
-    }
-  },
+  // async submitOrder(orderData) {
+  //   try {
+  //     const response = await orderService.post('/order/submitOrder', orderData);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error('Failed to submit order:', error);
+  //     throw error;
+  //   }
+  // },
   
   // 修改 - 支付成功回调
   async paySuccess(orderId) {
