@@ -1,15 +1,29 @@
-// src/components/StockLevel.vue
+<!-- src/components/StockLevel.vue -->
+<template>
+  <div class="stock-level">
+    <span 
+      class="stock-status"
+      :class="{
+        'loading': loading,
+        'error': error,
+        'out-of-stock': !loading && !error && stockCount <= 0,
+        'in-stock': !loading && !error && stockCount > 0
+      }"
+    >
+      {{ displayText }}
+    </span>
+  </div>
+</template>
+
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';  // 添加 watch 导入
-import { useStore } from 'vuex';
+import { ref, computed } from 'vue';
 import { getInventory } from '@/service/inventory';
 
-const store = useStore();
 const props = defineProps({
   productId: {
     type: Number,
     required: true,
-    default: 0
+    validator: value => value > 0  // 确保 productId 大于 0
   },
   showCount: {
     type: Boolean,
@@ -25,82 +39,59 @@ const stockCount = ref(0);
 const loading = ref(false);
 const error = ref(null);
 
-const stockStatus = computed(() => {
+const displayText = computed(() => {
   if (loading.value) return 'Loading...';
-  if (error.value) return 'Error';
-  
+  if (error.value) return 'Failed to get stock';
   if (stockCount.value <= 0) return 'Out of Stock';
   if (stockCount.value <= props.threshold) return 'Low Stock';
-  return 'In Stock';
+  return showCount ? `In Stock (${stockCount.value})` : 'In Stock';
 });
 
+// 只在组件挂载时获取一次库存
 const fetchStock = async () => {
-  // Skip fetching if productId is invalid
-  if (!props.productId) {
-    stockCount.value = 0;
-    return;
-  }
+  if (!props.productId) return;
   
   try {
     loading.value = true;
     error.value = null;
     const stock = await getInventory(null, props.productId);
-    stockCount.value = stock;
+    stockCount.value = stock || 0;
   } catch (err) {
     console.error('Failed to get stock:', err);
     error.value = err.message;
-    stockCount.value = 0;
   } finally {
     loading.value = false;
   }
 };
 
-// Watch for changes in productId
-watch(() => props.productId, (newId, oldId) => {
-  if (newId !== oldId && newId) {
+// 只在组件挂载时获取一次库存
+onMounted(() => {
+  if (props.productId > 0) {
     fetchStock();
   }
-}, { immediate: true }); // Add immediate:true to fetch on mount
-
+});
 </script>
-
-<template>
-  <div class="stock-level" :class="{ 'is-loading': loading }">
-    <span 
-      :class="[
-        'stock-status',
-        {
-          'out-of-stock': stockCount <= 0,
-          'low-stock': stockCount > 0 && stockCount <= threshold,
-          'in-stock': stockCount > threshold
-        }
-      ]"
-    >
-      {{ stockStatus }}
-      <template v-if="showCount && !loading && !error">
-        ({{ stockCount }} available)
-      </template>
-    </span>
-    <div v-if="error" class="error-message">
-      {{ error }}
-    </div>
-  </div>
-</template>
 
 <style scoped>
 .stock-level {
-  margin: 8px 0;
-}
-
-.stock-level.is-loading {
-  opacity: 0.7;
+  margin: 4px 0;
+  font-size: 0.9em;
 }
 
 .stock-status {
-  display: inline-block;
   padding: 4px 8px;
   border-radius: 4px;
-  font-size: 0.9em;
+  display: inline-block;
+}
+
+.stock-status.loading {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.stock-status.error {
+  background: #fff1f0;
+  color: #ff4d4f;
 }
 
 .stock-status.out-of-stock {
@@ -108,19 +99,8 @@ watch(() => props.productId, (newId, oldId) => {
   color: #c62828;
 }
 
-.stock-status.low-stock {
-  background: #fff3e0;
-  color: #ef6c00;
-}
-
 .stock-status.in-stock {
   background: #e8f5e9;
   color: #2e7d32;
-}
-
-.error-message {
-  color: #c62828;
-  font-size: 0.8em;
-  margin-top: 4px;
 }
 </style>

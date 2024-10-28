@@ -160,6 +160,11 @@
   import StockLevel from '@/components/StockLevel.vue';
   import { useAuth } from '@/composables/useAuth';
   import { checkStock } from '@/service/inventory';
+  import { 
+  getProductById,  // 确保导入这个方法
+  getAllProducts 
+} from '@/service/product';
+import { getInventory } from '@/service/inventory';
 
   const store = useStore();
   const { user } = useAuth();
@@ -201,6 +206,15 @@
         getInventory(authToken, productId)
       ]);
 
+      if (productResponse?.success && productResponse?.data) {
+        product.value = {
+          ...productResponse.data,
+          availableStock: stock || 0  // 合并库存信息
+        };
+      } else {
+        throw new Error('Failed to load product details');
+      }
+
       product.value = {
         ...productData,
         availableStock: stock
@@ -241,11 +255,6 @@
     const quantity = cartQuantity.value;
     return quantity > 0 ? `In Cart (${quantity})` : 'Add to Cart';
   });
-  
-  const cartQuantity = computed(() => {
-    if (!product.value?.productId) return 0;
-    return store.getters['cart/getCartItemQuantity'](product.value.productId);
-  });
 
   const formatKey = (key) => {
     return key
@@ -269,7 +278,7 @@
     }
     return value;
   };
-  
+
   const loadProduct = async () => {
     try {
       loading.value = true;
@@ -280,37 +289,40 @@
         throw new Error('Invalid product ID');
       }
 
-      const [productData, stock] = await Promise.all([
+      // 并行获取商品信息和库存信息
+      const [productResponse, stockResponse] = await Promise.all([
         getProductById(productId),
         getInventory(null, productId)
       ]);
 
-      if (!productData) {
+      if (!productResponse?.data) {
         throw new Error('Product not found');
       }
 
+      // 合并商品信息和库存信息
       product.value = {
-        ...productData,
-        availableStock: stock || 0
+        ...productResponse.data,
+        availableStock: stockResponse || 0
       };
 
-      // 加载分类名称和相关产品
+      // 加载分类名称和相关商品
       if (product.value.categoryId) {
         try {
-          const response = await pageQuery({
+          const categoryProducts = await getAllProducts({
             page: 1,
             pageSize: 4,
             categoryId: product.value.categoryId
           });
           
-          if (response && response.records) {
-            relatedProducts.value = response.records.filter(
+          if (categoryProducts?.data?.records) {
+            // 过滤掉当前商品
+            relatedProducts.value = categoryProducts.data.records.filter(
               p => p.productId !== productId
             );
           }
         } catch (err) {
-          console.error('Failed to load related products:', err);
-          relatedProducts.value = []; // 确保设置默认值
+          console.warn('Failed to load related products:', err);
+          relatedProducts.value = []; // 设置默认空数组
         }
       }
 
@@ -321,7 +333,6 @@
       loading.value = false;
     }
   };
-
   
   const decreaseQuantity = () => {
     if (quantity.value > 1) {
@@ -343,33 +354,21 @@
     router.push('/api/products');
   };
 
-  const addToCart = async () => {
+  const addToCart = async (product) => {
+    if (!product) return;
+    
     try {
-      // 再次检查库存
-      const stockAvailable = await checkStock(
-        product.value.productId,
-        quantity.value
-      );
-      
-      if (!stockAvailable) {
-        throw new Error('Insufficient stock');
-      }
-
-      // 构造购物车项数据
       const cartItem = {
-        productId: product.value.productId,
-        quantity: quantity.value,
-        price: product.value.price,
-        isSelected: true
+        productId: product.productId,
+        quantity: 1,  // 默认数量为1
+        price: product.price,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        isSelected: true,
       };
 
-      await addToCart(cartItem);
-      await store.dispatch('cart/fetchCartItems');
-      
-      // 重新加载商品信息以获取最新库存
-      await loadProduct();
-      
-      alert('Added to cart successfully');
+      await store.dispatch('cart/addToCart', cartItem);
+      alert('Added to cart successfully!');
     } catch (error) {
       console.error('Failed to add to cart:', error);
       alert(error.message || 'Failed to add to cart');

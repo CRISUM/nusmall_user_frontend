@@ -103,10 +103,10 @@
           <div v-if="userRole === 'CUSTOMER'" class="customer-actions">
             <button 
               class="add-to-cart-btn" 
-              @click="showAddToCartModal(product)"
-              :disabled="!product.availableStock"
+              @click="handleAddToCart(product)"
+              :disabled="false" 
             >
-              {{ getCartButtonText(product) }}
+              Add to Cart 
             </button>
           </div>
 
@@ -417,6 +417,28 @@ const productForm = ref({
 //   updateUser: ''
 // });
 
+const handleAddToCart = async (product) => {
+  if (!product) return;
+  
+  try {
+    const cartItem = {
+      productId: product.productId,
+      quantity: 1,
+      price: product.price,
+      name: product.name,
+      imageUrl: product.imageUrl,
+      isSelected: true,
+      createUser: product.createUser,
+      updateUser: product.updateUser
+    };
+
+    await store.dispatch('cart/addToCart', cartItem);
+    alert('Added to cart successfully!');
+  } catch (error) {
+    console.error('Failed to add to cart:', error);
+    alert(error.message || 'Failed to add to cart');
+  }
+};
 
 const hasRelatedProducts = computed(() => {
   return relatedProducts.value && relatedProducts.value.length > 0;
@@ -474,13 +496,6 @@ const pageTitle = computed(() => {
 const showInventory = computed(() => {
   return userRole.value !== 'CUSTOMER'
 })
-
-// Methods for cart
-const getAddToCartButtonText = (product) => {
-  const cartItem = store.state.cart.cartItems.find(item => item.cartItemId === product.id)
-  if (!product.availableStock) return 'Out of Stock'
-  return cartItem ? `In Cart (${cartItem.goodsCount})` : 'Add to Cart'
-}
 
 const showAddToCartModal = (product) => {
   selectedProduct.value = product;
@@ -604,16 +619,6 @@ const handleModalClick = (event) => {
     closeModal();
   }
 };
-
-
-// Add computed property for cart status
-const getCartButtonText = computed(() => (product) => {
-  const quantity = store.getters['cart/getCartItemQuantity'](product.productId);
-  if (!product.availableStock) {
-    return 'Out of Stock';
-  }
-  return quantity > 0 ? `In Cart (${quantity})` : 'Add to Cart';
-});
 
 // Methods for inventory management
 const manageInventory = async (product) => {

@@ -145,12 +145,25 @@ const apiService = {
       throw error;
     }
   },
+  /**
+   * Get product by ID
+   * Backend endpoint: GET /product
+   * @param {number} id Product ID
+   * @returns {Promise<Object>} Product details
+   */
   getProductById: async (id) => {
     try {
-      const response = await productService.get(`/product/${id}`);
-      return response.data;
+      const response = await productService.get('/product', {
+        params: { productId: id } // 修改为使用productId作为query参数
+      });
+      
+      // 检查响应格式
+      if (response?.success && response?.data) {
+        return response.data;
+      }
+      throw new Error('Invalid product response format');
     } catch (error) {
-      console.error('Failed to get product:', error);
+      console.error('Failed to get product:', error); 
       throw error;
     }
   },
@@ -166,6 +179,4 @@ export const {
   uploadImage,
   deleteImage,
   getProductById  // 添加这一行
-} = isUseMock() 
-  ? mockService 
-  : apiService;
+} = apiService;
