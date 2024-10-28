@@ -37,8 +37,17 @@ const apiService = {
   },
 
   createUser: async (userData) => {
-    const response = await userService.post('/api/user', userData);
-    return response;
+    try {
+      const response = await userService.post('/api/user', userData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to create user:', error);
+      throw error;
+    }
   },
 
   updateUser: async (id, userData) => {

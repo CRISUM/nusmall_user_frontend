@@ -1,30 +1,53 @@
 <template>
-    <div class="user-profile">
-      <h1>My Profile</h1>
-      <div v-if="!loading" class="user-info">
-        <div class="info">
-          <img :src="avatarSrc" alt="User Avatar"/>
-          <div class="user-desc">
-            <p>Username: {{ user.username }}</p>
-            <p>Email: {{ user.email }}</p>
-            <p>Role: {{ user.role }}</p>
-          </div>
+  <div class="user-profile">
+    <h1>My Profile</h1>
+    <div v-if="!loading" class="user-info">
+      <div class="info">
+        <img :src="avatarSrc" alt="User Avatar"/>
+        <div class="user-desc">
+          <p>Username: {{ user.username }}</p>
+          <p>Email: {{ user.email }}</p>
+          <p>Role: {{ user.role }}</p>
         </div>
       </div>
-        <ul class="user-actions">
-        <!-- Add new actions based on role -->
-        <li v-if="user.role === 'ADMIN'" @click="goTo('/api/users')">
-          User Management
+    </div>
+      <ul class="user-actions">
+        <!-- 修改点击事件，使用router-link替代click事件 -->
+        <li v-if="user.role === 'ADMIN'">
+          <router-link to="/api/users" class="nav-link">
+            User Management
+          </router-link>
         </li>
-        <li v-if="['SELLER', 'ADMIN'].includes(user.role)" @click="goTo('/inventory')">
-          Inventory Management
+        
+        <li v-if="['ADMIN', 'SELLER'].includes(user.role)">
+          <router-link to="/api/inventory" class="nav-link">
+            Inventory Management
+          </router-link>
         </li>
-        <li v-if="user.role === 'SELLER'" @click="goTo('/products?seller=true')">
-          My Products
+        
+        <li v-if="user.role === 'SELLER'">
+          <router-link to="/api/products" class="nav-link">
+            My Products
+          </router-link>
         </li>
-        <li @click="goTo('/api/orders')">My Orders</li>
-        <li @click="goTo('/api/account-settings')">Account Settings</li>
-        <li @click="goTo('/api/address-management')">Address Management</li>
+        
+        <li>
+          <router-link to="/api/orders" class="nav-link">
+            My Orders
+          </router-link>
+        </li>
+        
+        <li>
+          <router-link to="/api/user/settings" class="nav-link">
+            Account Settings
+          </router-link>
+        </li>
+        
+        <li>
+          <router-link to="/api/user/addresses" class="nav-link">
+            Address Management
+          </router-link>
+        </li>
       </ul>
     </div>
   </template>
@@ -119,6 +142,33 @@
     align-items: center;
   }
   
+  .user-desc p {
+    margin: 5px 0;
+  }
+
+  .user-actions {
+    list-style: none;
+    padding: 0;
+  }
+
+  .user-actions li {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 10px 0;
+    color: #333;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .nav-link:hover {
+    color: #1baeae;
+    background-color: #f8f9fa;
+  }
+
   .info img {
     width: 100px;
     height: 100px;

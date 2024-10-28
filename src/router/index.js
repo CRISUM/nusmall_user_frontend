@@ -14,6 +14,10 @@ import InventoryManagement from '@/views/InventoryManagement.vue'
 import { setupPermissionGuard } from './permissionGuard'
 import CategoryManagement from '@/views/CategoryManagement.vue'
 
+const UserSettings = () => import('@/views/UserSettings.vue');
+const AddressManagement = () => import('@/views/AddressManagement.vue');
+
+
 
 const routes = [
   {
@@ -90,6 +94,32 @@ const routes = [
       requiresAuth: true,
       roles: [UserRoles.ADMIN],
       permissions: {
+        write: true
+      }
+    }
+  },
+  {
+    path: '/api/user/settings',
+    name: 'UserSettings',
+    component: UserSettings,
+    meta: {
+      requiresAuth: true,
+      roles: [UserRoles.ADMIN, UserRoles.SELLER, UserRoles.CUSTOMER],
+      permissions: {
+        read: true,
+        write: true
+      }
+    }
+  },
+  {
+    path: '/api/user/addresses',
+    name: 'AddressManagement',
+    component: AddressManagement,
+    meta: {
+      requiresAuth: true,
+      roles: [UserRoles.ADMIN, UserRoles.SELLER, UserRoles.CUSTOMER],
+      permissions: {
+        read: true,
         write: true
       }
     }

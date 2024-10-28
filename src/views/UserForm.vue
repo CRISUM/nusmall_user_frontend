@@ -24,6 +24,21 @@
           <option value="ADMIN">Admin</option>
         </select>
       </div>
+      <div class="form-section">
+        <h2>Address Information</h2>
+        <div class="form-group">
+          <label>Street</label>
+          <input v-model="formData.address.street" type="text" placeholder="Street" required>
+        </div>
+        <div class="form-group">
+          <label>City</label>
+          <input v-model="formData.address.city" type="text" placeholder="City" required>
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <input v-model="formData.address.state" type="text" placeholder="State" required>
+        </div>
+      </div>
       <div class="form-actions">
         <button type="button" class="secondary-btn" @click="goBack">
           Cancel
@@ -40,10 +55,11 @@
 import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { createUser, getUserById, updateUser } from '@/service/user'
+import { showMessage } from '@/utils/message'  // 导入message
+import { createAddress } from '@/service/address';
 
 const router = useRouter()
 const route = useRoute()
-const showMessage = inject('showMessage')
 
 const user = ref({
   username: '',
@@ -54,6 +70,29 @@ const user = ref({
 
 const isEditing = computed(() => route.name === 'EditUser')
 
+const formData = ref({
+  user: {
+    userId: 0,
+    username: '',
+    email: '',
+    password: '',
+    createDatetime: '',
+    updateDatetime: '',
+    createUser: '',
+    updateUser: ''
+  },
+  address: {
+    addressId: 0,
+    street: '',
+    city: '',
+    state: '',
+    createDatetime: '',
+    updateDatetime: '',
+    createUser: '',
+    updateUser: ''
+  }
+})
+
 // Load user data if editing
 const loadUserData = async () => {
   if (!isEditing.value) return
@@ -62,10 +101,19 @@ const loadUserData = async () => {
     const userId = parseInt(route.params.id)
     const userData = await getUserById(userId)
     // remove password field from user object
-    const { password, ...userWithoutPassword } = userData
-    user.value = { ...userWithoutPassword, password: '' }
+    if (userData && userData.data) {
+      // 只填充允许编辑的字段
+      formData.value = {
+        username: userData.data.username,
+        email: userData.data.email,
+        password: ''  // 不回填密码
+      }
+      if (userData.data.addresses?.length > 0) {
+        formData.value.address = userData.data.addresses[0]
+      }
+    }
   } catch (error) {
-    showMessage(`Failed to load user: ${error.message}`, 'error')
+    showMessage?.(`Failed to load user: ${error.message}`, 'error')
     router.push('/api/users')
   }
 }
@@ -76,24 +124,51 @@ const goBack = () => {
 
 const onSubmit = async () => {
   try {
+    const currentTime = new Date().toISOString();
+    
+    // 直接构造符合后端要求的user对象
     const userData = {
-      ...user.value,
-      createUser: user.value.username || 'system',
-      updateUser: user.value.username || 'system',
-      createDatetime: new Date(),
-      updateDatetime: new Date()
+      userId: formData.value.user.userId,
+      username: formData.value.user.username,
+      email: formData.value.user.email,
+      password: formData.value.user.password,
+      createDatetime: currentTime,
+      updateDatetime: currentTime,
+      createUser: formData.value.user.username || 'system',
+      updateUser: formData.value.user.username || 'system'
+    };
+
+    // 地址信息将通过单独的API处理
+    const addressData = {
+      street: formData.value.address.street,
+      city: formData.value.address.city,  
+      state: formData.value.address.state,
+      createDatetime: currentTime,
+      updateDatetime: currentTime,
+      createUser: formData.value.user.username || 'system',
+      updateUser: formData.value.user.username || 'system'
     };
 
     if (isEditing.value) {
       await updateUser(route.params.id, userData);
-      showMessage('User updated successfully', 'success');
+      showMessage?.('User updated successfully', 'success');
     } else {
-      await createUser(userData);
-      showMessage('User created successfully', 'success');
+      const response = await createUser(userData);
+      if (response.success && response.data) {
+        // 如果用户创建成功，创建关联的地址
+        addressData.userId = response.data.userId;
+        try {
+          await createAddress(addressData);
+        } catch (addressError) {
+          console.error('Failed to create address:', addressError);
+          // 但不影响用户创建的成功提示
+        }
+      }
+      showMessage?.('User created successfully', 'success');
     }
     router.push('/api/users');
   } catch (error) {
-    showMessage(error.message || 'An error occurred', 'error');
+    showMessage?.(error.message || 'An error occurred', 'error');
   }
 };
 
@@ -158,5 +233,18 @@ onMounted(loadUserData)
 
 .secondary-btn:hover {
   background-color: #f5f5f5;
+}
+
+.form-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.form-section h2 {
+  margin: 0 0 16px;
+  font-size: 1.2em;
+  color: #333;
 }
 </style>
