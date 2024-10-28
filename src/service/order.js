@@ -54,10 +54,14 @@ const orderApi = {
    */
   async submitOrder(submitOrderParam) {
     try {
-      const response = await userService.post('/orders/submit', submitOrderParam);
-      return response.data;
+      const response = await orderService.get(`/order/trade`,{
+        headers: {
+          'authToken': localStorage.getItem('token')
+        }
+      });
+      return response;
     } catch (error) {
-      console.error('Failed to submit order:', error);
+      console.error('Failed to get order details:', error);
       throw error;
     }
   },

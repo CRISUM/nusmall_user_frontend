@@ -139,9 +139,10 @@ import { addToCart as addToCartService } from '@/service/cart';
       if (!cartItemId || quantity < 1) {
         throw new Error('Invalid parameters');
       }
-  
+    
       commit('SET_LOADING', true);
       try {
+        // 直接调用API更新数量
         await updateItemQuantity(cartItemId, quantity);
         commit('UPDATE_ITEM_QUANTITY', { cartItemId, quantity });
       } catch (error) {
@@ -151,7 +152,6 @@ import { addToCart as addToCartService } from '@/service/cart';
         commit('SET_LOADING', false);
       }
     },
-  
 
     async updateSelected({ commit }, { cartItemId, isSelected }) {
       if (!cartItemId) {

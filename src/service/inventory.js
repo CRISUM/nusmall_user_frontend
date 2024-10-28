@@ -151,7 +151,7 @@ const inventoryApi = {
       console.error('Failed to add stock:', error);
       throw error;
     }
-  }
+  },
 };
 
 // Export services based on environment configuration

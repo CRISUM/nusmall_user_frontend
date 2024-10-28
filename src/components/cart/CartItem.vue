@@ -58,10 +58,24 @@ const stockStatusClass = computed(() => {
   return 'in-stock';
 });
 
+const stockStatus = computed(() => {
+  if (!props.item.availableStock) return 'out-of-stock';
+  if (props.item.availableStock < props.item.quantity) return 'insufficient';
+  if (props.item.availableStock < 10) return 'low-stock';
+  return 'in-stock';
+});
+
 const stockStatusText = computed(() => {
-  if (!item.value?.availableStock) return 'Out of Stock';
-  if (item.value.availableStock < 10) return `Low Stock (${item.value.availableStock} left)`;
-  return `In Stock (${item.value.availableStock})`;
+  switch (stockStatus.value) {
+    case 'out-of-stock':
+      return 'Out of Stock';
+    case 'insufficient':
+      return `Only ${props.item.availableStock} available`;
+    case 'low-stock':
+      return `Low Stock (${props.item.availableStock} left)`;
+    default:
+      return `In Stock (${props.item.availableStock})`;
+  }
 });
 </script>
 

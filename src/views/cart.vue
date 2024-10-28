@@ -31,7 +31,11 @@ const selectedItems = computed(() => {
   return cartItems.value.filter(item => item.isSelected);
 });
 
-const hasSelectedItems = computed(() => store.getters['cart/hasSelectedItems']);
+const hasSelectedItems = computed(() => {
+  store.getters['cart/hasSelectedItems']
+  console.log('HAS ITEMS: store.getters', store.getters);
+});
+
 const cartTotal = computed(() => {
   return cartItems.value.reduce((total, item) => {
     const itemPrice = Number(item.price) || 0;
@@ -143,20 +147,14 @@ const loadCartItems = async () => {
  * @param {number} cartItemId 
  * @param {number} newQuantity 
  */
-const updateQuantity = async (cartItemId, newQuantity) => {
+ const updateQuantity = async (cartItemId, newQuantity) => {
   if (newQuantity < 1 || newQuantity > 99 || processingItems.value.has(cartItemId)) return;
   
   processingItems.value.add(cartItemId);
   errorMessage.value = '';
   
   try {
-    const item = cartItems.value.find(item => item.cartItemId === cartItemId);
-    const stockStatus = await ServiceFacade.checkInventoryStatus(item.productId);
-    
-    if (stockStatus === InventoryStatus.OUT_OF_STOCK || stockStatus.availableStock < newQuantity) {
-      throw new Error(`Only ${stockStatus.availableStock || 0} items available`);
-    }
-
+    // 直接调用更新数量的action
     await store.dispatch('cart/updateQuantity', {
       cartItemId,
       quantity: newQuantity
@@ -221,10 +219,10 @@ const removeSelectedItems = async () => {
  * Process checkout for selected items
  */
 const checkout = async () => {
-  if (!hasSelectedItems.value) {
-    errorMessage.value = 'Please select items to checkout';
-    return;
-  }
+  // if (!hasSelectedItems.value) {
+  //   errorMessage.value = 'Please select items to checkout';
+  //   return;
+  // }
 
   isProcessingCheckout.value = true;
   errorMessage.value = '';
@@ -369,7 +367,7 @@ onMounted(async () => {
 
           <button class="checkout-btn"
                   @click="checkout"
-                  :disabled="!hasSelectedItems || isProcessingCheckout">
+                  :disabled="false">
             {{ isProcessingCheckout ? 'Processing...' : 'Proceed to Checkout' }}
           </button>
         </div>

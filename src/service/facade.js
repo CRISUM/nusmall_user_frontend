@@ -10,6 +10,54 @@ import store from '@/store';
  * Service facade for handling complex business operations
  */
 export const ServiceFacade = {
+    /**
+   * Check inventory status for a product
+   * @param {number} productId 
+   * @returns {Promise<Object>} Stock status
+   */
+    async checkInventoryStatus(productId) {
+      try {
+        const stock = await getInventory(productId);
+        
+        // 根据库存状态返回对应的状态对象
+        if (!stock || stock === 0) {
+          return {
+            status: InventoryStatus.OUT_OF_STOCK,
+            availableStock: 0
+          };
+        }
+        
+        return {
+          status: stock < 10 ? InventoryStatus.LOW_STOCK : InventoryStatus.IN_STOCK,
+          availableStock: stock
+        };
+      } catch (error) {
+        console.error('Failed to check inventory status:', error);
+        throw error;
+      }
+    },
+  
+    /**
+     * Get product with inventory status
+     * @param {number} productId 
+     * @returns {Promise<Object>}
+     */
+    async getProductWithStock(productId) {
+      try {
+        const [product, stock] = await Promise.all([
+          getProductById(productId),
+          getInventory(productId)
+        ]);
+  
+        return {
+          ...product,
+          availableStock: stock
+        };
+      } catch (error) {
+        console.error('Failed to get product with stock:', error);
+        throw error;
+      }
+    },
   /**
    * Process order checkout
    * @param {Object} cartData 
@@ -17,16 +65,16 @@ export const ServiceFacade = {
    */
   async processCheckout(cartData) {
     try {
-      // 1. Validate stock for all items
-      const stockValidations = await Promise.all(
-        cartData.items.map(item => 
-          inventoryService.checkStock(item.productId, item.quantity)
-        )
-      );
+      // // 1. Validate stock for all items
+      // const stockValidations = await Promise.all(
+      //   cartData.items.map(item => 
+      //     inventoryService.checkStock(item.productId, item.quantity)
+      //   )
+      // );
 
-      if (stockValidations.some(result => !result)) {
-        throw new Error('Some items are out of stock');
-      }
+      // if (stockValidations.some(result => !result)) {
+      //   throw new Error('Some items are out of stock');
+      // }
 
       // 2. Submit order
       const orderId = await orderService.submitOrder({

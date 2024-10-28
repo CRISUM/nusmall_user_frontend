@@ -45,28 +45,28 @@ const cartApi = {
     }
   },
 
-  updateInventoryAfterAdd: async (productId, quantity) => {
-    try {
-      // 先检查库存
-      const currentStock = await inventoryService.get(`/inventory?productId=${productId}`);
+  // updateInventoryAfterAdd: async (productId, quantity) => {
+  //   try {
+  //     // 先检查库存
+  //     const currentStock = await inventoryService.get(`/inventory?productId=${productId}`);
       
-      // 确保有足够库存
-      if (currentStock < quantity) {
-        throw new Error('Insufficient stock');
-      }
+  //     // 确保有足够库存
+  //     if (currentStock < quantity) {
+  //       throw new Error('Insufficient stock');
+  //     }
   
-      // 更新库存
-      await inventoryService.put('/inventory', {
-        productId,
-        availableStock: currentStock - quantity
-      }, {
-        headers: { 'authToken': localStorage.getItem('token') }
-      });
-    } catch (error) {
-      console.error('Failed to update inventory:', error);
-      throw error;
-    }
-  },
+  //     // 更新库存
+  //     await inventoryService.put('/inventory', {
+  //       productId,
+  //       availableStock: currentStock - quantity
+  //     }, {
+  //       headers: { 'authToken': localStorage.getItem('token') }
+  //     });
+  //   } catch (error) {
+  //     console.error('Failed to update inventory:', error);
+  //     throw error;
+  //   }
+  // },
 
   /**
    * Update item quantity
@@ -189,6 +189,6 @@ export const {
   getSelectedItems,
   removeItemFromCart,
   removeSelectedItems,
-  updateInventoryAfterAdd,
+  // updateInventoryAfterAdd,
   clearCart
 } = cartApi;

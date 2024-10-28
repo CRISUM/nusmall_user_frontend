@@ -31,6 +31,15 @@ const hasStockIssues = computed(() => {
   return stockCheckResults.value.some(result => !result.available);
 });
 
+const hasSelectedItems = computed(() => store.getters['cart/hasSelectedItems']);
+const cartTotal = computed(() => {
+  return cartItems.value.reduce((total, item) => {
+    const itemPrice = Number(item.price) || 0;
+    const itemQuantity = Number(item.quantity) || 0;
+    return total + (itemPrice * itemQuantity);
+  }, 0);
+});
+
 const formattedTotal = computed(() => formatPrice(props.totalAmount));
 
 /**
@@ -94,48 +103,31 @@ const startCheckout = async () => {
 
   try {
     const user = JSON.parse(localStorage.getItem('user'));
-    const authToken = localStorage.getItem('token');
 
-    // 1. 最后一次库存检查
-    const stockChecks = await Promise.all(
-      props.selectedItems.map(async item => {
-        const available = await checkStock(item.productId, item.quantity);
-        return {
-          item,
-          available
-        };
-      })
-    );
-
-    const stockIssues = stockChecks.filter(check => !check.available);
-    if (stockIssues.length > 0) {
-      throw new Error('Some items are no longer available in the requested quantity');
-    }
-
-    // 2. 提交订单
+    // 直接提交订单
     const submitOrderParam = {
       userId: user.id,
       totalPrice: props.totalAmount,
       cartInfoList: props.selectedItems.map(item => ({
         productId: item.productId,
-        quantity: item.quantity,
+        quantity: item.quantity, 
         price: item.price
       })),
       createUser: user.username,
       updateUser: user.username
     };
 
-    // 3. 创建订单
+    // 创建订单
     const orderId = await submitOrder(submitOrderParam);
 
-    // 4. 更新支付状态
+    // 更新支付状态 
     await paySuccess(orderId);
 
-    // 5. 清理购物车
+    // 清理购物车
     await store.dispatch('cart/removeSelectedItems');
 
     store.dispatch('notification/show', {
-      type: 'success',
+      type: 'success', 
       message: 'Order placed successfully!'
     });
 
@@ -159,8 +151,9 @@ const validateStock = async () => {
         return true;
       })
     );
-    return true;
+    return stockChecks.every(check => check === true);
   } catch (error) {
+    console.error('Stock validation failed:', error);
     throw error;
   }
 };
@@ -188,7 +181,7 @@ const validateStock = async () => {
       <button 
         class="checkout-btn"
         @click="startCheckout"
-        :disabled="isProcessing || selectedItems.length === 0"
+        :disabled="isProcessing || !hasSelectedItems"
       >
         {{ isProcessing ? 'Processing...' : 'Proceed to Checkout' }}
       </button>

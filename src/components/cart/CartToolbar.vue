@@ -38,6 +38,7 @@ const handleBatchDelete = () => {
 };
 
 const checkBatchStock = async (items) => {
+  console.log('Checking stock for:', items);
   try {
     const checks = await Promise.all(
       items.map(item => 
