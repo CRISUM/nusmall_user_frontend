@@ -10,7 +10,7 @@ const paymentApi = {
    */
   async payOrder(orderId) {
     try {
-        window.open('http://localhost:5000/api/payment/pay?orderId=' + orderId);
+        window.open('http://167.71.195.130:8085/api/payment/pay?orderId=' + orderId);
     //   // 确保orderId是简单类型而不是对象
     //   const response = await paymentService.get('/api/payment/pay', {
     //     params: { 
