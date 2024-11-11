@@ -11,7 +11,7 @@ const paymentApi = {
   async payOrder(orderId) {
     try {
       // 打开支付页面
-      window.open('http://nusmall.com:8085/api/payment/pay?orderId=' + orderId);
+      window.open('http://nusmall.com:8070/api/payment/pay?orderId=' + orderId);
       
       // 监听支付状态
       return new Promise((resolve, reject) => {
