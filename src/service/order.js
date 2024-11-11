@@ -104,8 +104,8 @@ const orderApi = {
   // 修改 - 支付成功回调
   async paySuccess(orderId) {
     try {
-      await orderService.put(`/order/inner/paySuccess?orderId=${orderId}`);
-      return true;
+      const response = await orderService.get(`/order/inner/paySuccess?orderId=${orderId}`);
+      return response;
     } catch (error) {
       console.error('Failed to update payment status:', error);
       throw error;

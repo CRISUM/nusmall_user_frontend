@@ -84,29 +84,47 @@ import { addToCart as addToCartService } from '@/service/cart';
   
   const actions = {
     async initializeCart({ commit }) {
-      commit('SET_LOADING', true);
       try {
-        // 直接调用获取购物车项目的API
-        const cartItems = await getCart();
+        const response = await getCart();
+        // 确保每个商品都有正确的属性
+        const items = response.map(item => ({
+          ...item,
+          name: item.name || item.productName, // 后端可能返回productName
+          price: Number(item.price),
+          quantity: Number(item.quantity),
+          imageUrl: item.imageUrl || '/api/placeholder/400/320',
+        }));
         
-        // 确保接收到的是数组
-        if (Array.isArray(cartItems)) {
-          commit('SET_CART_ITEMS', cartItems);
-          // 设置选中的商品
-          const selectedItems = cartItems.filter(item => item.isSelected);
-          commit('SET_SELECTED_ITEMS', selectedItems);
-        } else {
-          console.error('Invalid cart items format:', cartItems);
-          commit('SET_CART_ITEMS', []);
-          commit('SET_SELECTED_ITEMS', []);
-        }
+        commit('SET_CART_ITEMS', items);
       } catch (error) {
         console.error('Failed to initialize cart:', error);
-        commit('SET_ERROR', error.message);
-      } finally {
-        commit('SET_LOADING', false);
+        commit('SET_CART_ITEMS', []);
       }
     },
+    // async initializeCart({ commit }) {
+    //   commit('SET_LOADING', true);
+    //   try {
+    //     // 直接调用获取购物车项目的API
+    //     const cartItems = await getCart();
+        
+    //     // 确保接收到的是数组
+    //     if (Array.isArray(cartItems)) {
+    //       commit('SET_CART_ITEMS', cartItems);
+    //       // 设置选中的商品
+    //       const selectedItems = cartItems.filter(item => item.isSelected);
+    //       commit('SET_SELECTED_ITEMS', selectedItems);
+    //     } else {
+    //       console.error('Invalid cart items format:', cartItems);
+    //       commit('SET_CART_ITEMS', []);
+    //       commit('SET_SELECTED_ITEMS', []);
+    //     }
+    //   } catch (error) {
+    //     console.error('Failed to initialize cart:', error);
+    //     commit('SET_ERROR', error.message);
+    //   } finally {
+    //     commit('SET_LOADING', false);
+    //   }
+    // },
     async addToCart({ commit, dispatch }, cartItem) {
       commit('SET_LOADING', true);
       try {
@@ -256,6 +274,18 @@ import { addToCart as addToCartService } from '@/service/cart';
       const item = items.find(item => item.productId === productId);
       return item ? item.quantity : 0;
     },
+
+    hasSelectedItems: state => {
+      // 确保cartItems是数组并且检查是否有选中的项目
+      return Array.isArray(state.cartItems) && 
+             state.cartItems.some(item => item.isSelected);
+    },
+  
+    getSelectedItems: state => {
+      return Array.isArray(state.cartItems) ? 
+             state.cartItems.filter(item => item.isSelected) : 
+             [];
+    }
   };
   
   export default {

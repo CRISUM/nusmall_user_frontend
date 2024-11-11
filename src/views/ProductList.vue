@@ -112,10 +112,10 @@
             :src="product.productImages?.[0]?.imageUrl || '/api/placeholder/400/320'" 
             :alt="product.name"
           >
-          <!-- 使用API返回的库存信息 -->
+          <!-- 使用API返回的库存信息
           <div v-if="!product.availableStock" class="out-of-stock-overlay">
             Out of Stock
-          </div>
+          </div> -->
         </div>
 
         <!-- Product Info -->

@@ -10,18 +10,34 @@ const paymentApi = {
    */
   async payOrder(orderId) {
     try {
-        window.open('http://167.71.195.130:8085/api/payment/pay?orderId=' + orderId);
-    //   // 确保orderId是简单类型而不是对象
-    //   const response = await paymentService.get('/api/payment/pay', {
-    //     params: { 
-    //       orderId: orderId // 强制转换为字符串
-    //     }
-    //   });
-    //   console.log('orderid:', orderId);
-    //   return response;
+      // 打开支付页面
+      window.open('http://nusmall.com:8085/api/payment/pay?orderId=' + orderId);
+      
+      // 监听支付状态
+      return new Promise((resolve, reject) => {
+        const checkPaymentStatus = async () => {
+          try {
+            const response = await paymentService.get(
+              `/api/payment/status?orderId=${orderId}`
+            );
+            if (response.success && response.data.status === 'PAID') {
+              resolve(true);
+            } else if (response.data.status === 'FAILED') {
+              reject(new Error('Payment failed'));
+            } else {
+              setTimeout(checkPaymentStatus, 2000); // 每2秒检查一次
+            }
+          } catch (error) {
+            reject(error);
+          }
+        };
+        
+        // Start checking
+        checkPaymentStatus();
+      });
     } catch (error) {
       console.error('Payment failed:', error);
-      throw error;  
+      throw error;
     }
   },
 

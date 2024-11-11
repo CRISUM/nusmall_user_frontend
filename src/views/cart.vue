@@ -6,11 +6,13 @@ import { useRouter } from 'vue-router';
 import { ServiceFacade } from '@/service/facade';
 import { useAuth } from '@/composables/useAuth';
 import { InventoryStatus } from '@/constants/cartTypes';
+import OrderConfirmationModal from '@/components/order/OrderConfirmationModal.vue';
 
 // Composables and state management
 const store = useStore();
 const router = useRouter();
 const { user } = useAuth();
+const showConfirmation = ref(false);
 
 // Local state
 const loading = ref(false);
@@ -34,8 +36,7 @@ const selectedItems = computed(() => {
 });
 
 const hasSelectedItems = computed(() => {
-  store.getters['cart/hasSelectedItems']
-  console.log('HAS ITEMS: store.getters', store.getters);
+  return selectedItems.value.length > 0;
 });
 
 const cartTotal = computed(() => {
@@ -59,15 +60,6 @@ const getStockStatusClass = (item) => {
   if (item.availableStock < item.quantity) return 'insufficient-stock';
   if (item.availableStock < 10) return 'low-stock';
   return 'in-stock';
-};
-
-const getStockStatusText = (item) => {
-  if (!item.availableStock) return 'Out of Stock';
-  if (item.availableStock < item.quantity) 
-    return `Insufficient Stock (only ${item.availableStock} available)`;
-  if (item.availableStock < 10) 
-    return `Low Stock (${item.availableStock} left)`;
-  return `In Stock (${item.availableStock})`;
 };
 
 // Helper functions
@@ -137,6 +129,8 @@ const loadCartItems = async () => {
       cartItemId: cartItemId,
       isSelected: !isSelected
     });
+
+    console.log('Selected items after toggle:', selectedItems.value);
   } catch (error) {
     errorMessage.value = error.message;
   } finally {
@@ -230,36 +224,75 @@ const showPaymentPopup = () => {
  * Process checkout for selected items
  */
 const checkout = async () => {
-  // if (!hasSelectedItems.value) {
-  //   errorMessage.value = 'Please select items to checkout';
-  //   return;
-  // }
+  console.log('Current selected items:', selectedItems.value);
+  console.log('Has selected items:', hasSelectedItems.value);
 
-  isProcessingCheckout.value = true;
-  errorMessage.value = '';
-
-  try {
-    const checkoutData = {
-      userId: user.value.id,
-      items: selectedItems.value.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price
-      })),
-      totalPrice: selectedTotal.value
-    };
-
-    const orderId = await ServiceFacade.processCheckout(checkoutData);
-    
-    await showPaymentPopup();
-
-    router.push(`/api/orders/${orderId}`);
-  } catch (error) {
-    errorMessage.value = error.message;
-  } finally {
-    isProcessingCheckout.value = false;
+  if (selectedItems.value.length === 0) {
+    errorMessage.value = 'Please select items to checkout';
+    return;
   }
+
+  showConfirmation.value = true;
 };
+
+const handleOrderSuccess = (orderId) => {
+  showConfirmation.value = false;
+  showMessage('Order placed successfully!', 'success');
+};
+
+// const checkout = async () => {
+//   // if (!hasSelectedItems.value) {
+//   //   errorMessage.value = 'Please select items to checkout';
+//   //   return;
+//   // }
+
+//   isProcessingCheckout.value = true;
+//   errorMessage.value = '';
+
+//   try {
+//     const checkoutData = {
+//       userId: user.value.id,
+//       items: selectedItems.value.map(item => ({
+//         productId: item.productId,
+//         quantity: item.quantity,
+//         price: item.price
+//       })),
+//       totalPrice: selectedTotal.value
+//     };
+
+//         // 提交订单
+//         const response = await orderService.submitOrder(checkoutData);
+    
+//     if (response.success) {
+//       // Store orderId for payment
+//       const orderId = response.data;
+      
+//       // 处理支付
+//       await paymentService.payOrder(orderId);
+      
+//       // Show success message
+//       showPaymentSuccess.value = true;
+      
+//       // Clear selected items from cart
+//       await store.dispatch('cart/removeSelectedItems');
+      
+//       // Wait for animation
+//       setTimeout(() => {
+//         router.push(`/api/orders/${orderId}`);
+//       }, 2000);
+//     }
+
+//     // const orderId = await ServiceFacade.processCheckout(checkoutData);
+    
+//     // await showPaymentPopup();
+
+//     // router.push(`/api/orders/${orderId}`);
+//   } catch (error) {
+//     errorMessage.value = error.message;
+//   } finally {
+//     isProcessingCheckout.value = false;
+//   }
+// };
 
 const goToOrderPage = () => {
   showPaymentSuccess.value = false;
@@ -280,13 +313,27 @@ onMounted(async () => {
 </script>
 
 <template>
+  <OrderConfirmationModal
+    v-if="showConfirmation"
+    :show="showConfirmation"
+    :items="selectedItems"
+    @close="showConfirmation = false"
+    @order-success="handleOrderSuccess"
+  />
   <div class="cart-page">
-    <!-- Success checkout -->
+    <!-- Payment Success Modal -->
     <div v-if="showPaymentSuccess" class="payment-success-modal">
       <div class="modal-content">
-        <h2>Payment Success</h2>
-        <p>Your order has been placed successfully!</p>
-        <button @click="goToOrderPage">Go to Order</button>
+        <h2>Payment Success!</h2>
+        <p>Your order has been placed successfully.</p>
+        <div class="modal-actions">
+          <button @click="router.push('/api/orders')" class="primary-btn">
+            View Orders
+          </button>
+          <button @click="router.push('/api/products')" class="secondary-btn">
+            Continue Shopping
+          </button>
+        </div>
       </div>
     </div>
 
@@ -337,7 +384,10 @@ onMounted(async () => {
 
             <!-- Item Details -->
             <div class="item-content">
-              <img :src="item.imageUrl" :alt="item.name" class="item-image">
+              <img :src="item.imageUrl || '/api/placeholder/400/320'" 
+         :alt="item.name"
+         class="item-image"
+         @error="handleImageError">
               
               <div class="item-info">
                 <h3>{{ item.name || 'Unnamed Product' }}</h3>
@@ -355,21 +405,17 @@ onMounted(async () => {
                   <button @click="updateQuantity(item.cartItemId, item.quantity + 1)"
                           :disabled="processingItems.has(item.cartItemId)">+</button>
                 </div>
-
-                <div class="stock-status" :class="getStockStatusClass(item)">
-                  {{ getStockStatusText(item) }}
-                </div>
                 
                 <p class="subtotal">
                   Subtotal: <span>¥{{ formatPrice(item.price * (item.quantity || 1)) }}</span>
                 </p>
               </div>
 
-              <button class="remove-btn"
+              <!-- <button class="remove-btn"
                       @click="removeItem(item.cartItemId)"
                       :disabled="processingItems.has(item.cartItemId)">
                 <i class="delete-icon"></i>
-              </button>
+              </button> -->
             </div>
           </div>
         </div>
@@ -625,6 +671,13 @@ onMounted(async () => {
     color: white;
     border-radius: 4px;
     cursor: pointer;
+  }
+
+  .modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
   }
 }
 </style>

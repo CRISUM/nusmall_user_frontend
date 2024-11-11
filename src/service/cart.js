@@ -33,7 +33,15 @@ const cartApi = {
    */
   addToCart: async (cartItem) => {
     try {
-      const response = await cartService.post('/api/v1/cart/add-item', cartItem, {
+      // 确保图片URL使用正确的格式
+      const formattedCartItem = {
+        ...cartItem,
+        imageUrl: cartItem.imageUrl || '/api/placeholder/400/320',
+        quantity: Number(cartItem.quantity) || 1,
+        price: Number(cartItem.price) || 0
+      };
+  
+      const response = await cartService.post('/api/v1/cart/add-item', formattedCartItem, {
         headers: { 
           'authToken': localStorage.getItem('token')
         }
