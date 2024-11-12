@@ -59,7 +59,7 @@ const orderApi = {
           'authToken': localStorage.getItem('token')
         }
       });
-      return response;
+      return response.data;
     } catch (error) {
       console.error('Failed to get order details:', error);
       throw error;

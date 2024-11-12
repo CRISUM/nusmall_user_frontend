@@ -118,6 +118,7 @@ const confirmOrder = async () => {
     processing.value = false;
   }
 };
+
 </script>
 
 <style scoped>
