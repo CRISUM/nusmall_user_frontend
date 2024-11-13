@@ -3,6 +3,9 @@
 import { computed } from 'vue';
 import { CartItemStatus, CartValidation, formatPrice } from '@/constants/cartTypes';
 
+const defaultProductImage = '/api/placeholder/200/200';
+
+
 const props = defineProps({
   item: {
     type: Object,
@@ -67,6 +70,10 @@ const stockStatus = computed(() => {
   return 'in-stock';
 });
 
+const handleImageError = (event) => {
+  event.target.src = defaultProductImage;
+};
+
 const stockStatusText = computed(() => {
   switch (stockStatus.value) {
     case 'out-of-stock':
@@ -82,66 +89,51 @@ const stockStatusText = computed(() => {
 </script>
 
 <template>
-  <div 
-    class="cart-item"
-    :class="{
-      'processing': processing,
-      'selected': item.isSelected
-    }"
-  >
-    <!-- Selection Checkbox -->
+  <div class="cart-item" :class="{ 'selected': item.isSelected }">
+    <!-- Item Selection -->
     <div class="item-select">
       <input 
         type="checkbox"
         :checked="item.isSelected"
         @change="$emit('toggle-selection', !item.isSelected)"
-        :disabled="processing"
       >
     </div>
 
     <!-- Item Content -->
     <div class="item-content">
-      <!-- Product Image -->
-      <div class="item-image">
-        <img :src="item.imageUrl" :alt="item.name">
-        <div v-if="processing" class="processing-overlay">
-          <div class="spinner"></div>
-        </div>
+      <div class="item-image-container">
+        <img 
+          :src="defaultProductImage" 
+          :alt="item.name"
+          class="item-image"
+          @error="handleImageError"
+        >
       </div>
 
-      <!-- Product Info -->
       <div class="item-info">
         <h3 class="item-name">{{ item.name }}</h3>
-        <p class="item-price">{{ formatPrice(item.price) }}</p>
-
-        <!-- Stock Status -->
-        <div class="stock-status" :class="stockStatusClass">
-          {{ stockStatusText }}
-        </div>
-
-        <!-- Quantity Control -->
+        <p class="item-price">¥{{ formatPrice(item.price) }}</p>
+        
         <div class="quantity-control">
           <button 
             @click="decrementQuantity"
-            :disabled="processing || item.quantity <= CartValidation.MIN_QUANTITY"
+            :disabled="item.quantity <= 1"
           >-</button>
           <input 
             type="number"
-            v-model="item.quantity"
+            v-model.number="item.quantity"
             @change="handleQuantityChange"
-            :min="CartValidation.MIN_QUANTITY"
-            :max="CartValidation.MAX_QUANTITY"
-            :disabled="processing"
+            min="1"
+            max="99"
           >
           <button 
             @click="incrementQuantity"
-            :disabled="processing || item.quantity >= CartValidation.MAX_QUANTITY"
+            :disabled="item.quantity >= 99"
           >+</button>
         </div>
 
-        <!-- Subtotal -->
-        <p class="subtotal">
-          Subtotal: <span>{{ subtotal }}</span>
+        <p class="item-subtotal">
+          Subtotal: <span>¥{{ formatPrice(item.price * item.quantity) }}</span>
         </p>
       </div>
 
@@ -149,14 +141,12 @@ const stockStatusText = computed(() => {
       <button 
         class="remove-btn"
         @click="$emit('remove')"
-        :disabled="processing"
       >
         <i class="delete-icon"></i>
       </button>
     </div>
   </div>
 </template>
-
 <style scoped>
 .cart-item {
   display: flex;
@@ -200,6 +190,21 @@ const stockStatusText = computed(() => {
   height: 100%;
   object-fit: cover;
   border-radius: 4px;
+}
+
+.item-image-container {
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid #eee;
+}
+
+.item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .processing-overlay {

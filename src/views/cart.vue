@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router';
 import { ServiceFacade } from '@/service/facade';
 import { useAuth } from '@/composables/useAuth';
 import { InventoryStatus } from '@/constants/cartTypes';
+import { showMessage } from '@/utils/message';
 import OrderConfirmationModal from '@/components/order/OrderConfirmationModal.vue';
 
 // Composables and state management
@@ -21,7 +22,7 @@ const errorMessage = ref('');
 const isProcessingCheckout = ref(false);
 const showConfirmDialog = ref(false);
 const itemToDelete = ref(null);
-
+const processing = ref(false);
 const showPaymentSuccess = ref(false);
 
 // Computed properties
@@ -33,6 +34,14 @@ const cartItems = computed(() => {
 
 const selectedItems = computed(() => {
   return cartItems.value.filter(item => item.isSelected);
+});
+
+const allSelected = computed(() => {
+  return cartItems.value.length > 0 && cartItems.value.every(item => item.isSelected);
+});
+
+const someSelected = computed(() => {
+  return cartItems.value.some(item => item.isSelected) && !allSelected.value;
 });
 
 const hasSelectedItems = computed(() => {
@@ -173,6 +182,46 @@ const loadCartItems = async () => {
   itemToDelete.value = cartItemId;
   showConfirmDialog.value = true;
 };
+
+const toggleSelectAll = async () => {
+  try {
+    processing.value = true;
+    const newState = !allSelected.value;
+    
+    // Update all items selection state
+    await Promise.all(
+      cartItems.value.map(item => 
+        store.dispatch('cart/updateSelected', {
+          cartItemId: item.cartItemId,
+          isSelected: newState
+        })
+      )
+    );
+  } catch (error) {
+    showMessage(error.message || 'Failed to update selection', 'error');
+  } finally {
+    processing.value = false;
+  }
+};
+
+// const removeSelectedItems = async () => {
+//   if (!hasSelectedItems.value) return;
+  
+//   if (!confirm('Are you sure you want to remove selected items?')) {
+//     return;
+//   }
+
+//   try {
+//     processing.value = true;
+//     await store.dispatch('cart/removeSelectedItems');
+//     showMessage('Selected items removed successfully', 'success');
+//   } catch (error) {
+//     showMessage(error.message || 'Failed to remove items', 'error');
+//   } finally {
+//     processing.value = false;
+//   }
+// };
+
 
 const confirmDelete = async () => {
   if (!itemToDelete.value) return;
@@ -355,13 +404,29 @@ onMounted(async () => {
       <div v-if="cartItems && cartItems.length > 0" class="cart-content">
         <!-- Cart Header -->
         <div class="cart-header">
-          <h1>Shopping Cart</h1>
-          <button v-if="hasSelectedItems"
-                  class="danger-btn"
-                  @click="removeSelectedItems"
-                  :disabled="loading">
-            Remove Selected
-          </button>
+          <div class="header-left">
+            <label class="select-all-wrapper">
+              <input 
+                type="checkbox"
+                :checked="allSelected"
+                :indeterminate="someSelected"
+                @change="toggleSelectAll"
+                :disabled="cartItems.length === 0"
+              >
+              <span>Select All</span>
+            </label>
+          </div>
+          
+          <div class="header-right">
+            <button 
+              v-if="hasSelectedItems"
+              class="remove-selected-btn"
+              @click="removeSelectedItems"
+              :disabled="processing"
+            >
+              Remove Selected ({{ selectedItems.length }})
+            </button>
+          </div>
         </div>
 
         <!-- Cart Items -->
@@ -441,14 +506,29 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Empty Cart -->
+        <!-- Empty Cart State -->
+      <div v-if="!loading && (!cartItems || cartItems.length === 0)" class="empty-cart">
+        <div class="empty-cart-icon">
+          <img 
+            src="@/assets/pic/empty-cart.svg" 
+            alt="Empty Cart"
+            class="empty-cart-image"
+          >
+        </div>
+        <p class="empty-message">Your shopping cart is empty</p>
+        <router-link to="/api/products" class="continue-shopping-btn">
+          Continue Shopping
+        </router-link>
+      </div>
+
+      <!-- Empty Cart
       <div v-else class="empty-cart">
         <img src="@/assets/pic/empty-cart.svg" alt="Empty Cart">
         <p>Your cart is empty</p>
         <router-link to="/api/products" class="shopping-btn">
           Continue Shopping
         </router-link>
-      </div>
+      </div> -->
     </template>
 
     <!-- Delete Confirmation Dialog -->
@@ -537,6 +617,38 @@ onMounted(async () => {
   padding: 16px;
   border-radius: 8px;
   transition: all 0.3s ease;
+}
+
+.select-all-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.select-all-wrapper input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.remove-selected-btn {
+  padding: 8px 16px;
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.remove-selected-btn:hover {
+  background: #ff7875;
+}
+
+.remove-selected-btn:disabled {
+  background: #ffccc7;
+  cursor: not-allowed;
 }
 
 .cart-item.processing {
@@ -678,6 +790,47 @@ onMounted(async () => {
     display: flex;
     justify-content: center;
     gap: 10px;
+  }
+
+  .empty-cart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .empty-cart-icon {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 20px;
+  }
+
+  .empty-cart-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .empty-message {
+    color: #666;
+    font-size: 1.2em;
+    margin-bottom: 20px;
+  }
+
+  .continue-shopping-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background: #1baeae;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+  }
+
+  .continue-shopping-btn:hover {
+    background: #158f8f;
   }
 }
 </style>

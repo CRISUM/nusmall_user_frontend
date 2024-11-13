@@ -209,7 +209,6 @@ import {
   updateProduct,
   deleteProduct as deleteProductApi,
   uploadImage,
-  getProductById  // 添加这一行
 } from '@/service/product';
 
 import { getInventory, updateInventory } from '@/service/inventory';

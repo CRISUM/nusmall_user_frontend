@@ -97,46 +97,57 @@ const startCheckout = async () => {
 /**
  * Process checkout confirmation
  */
- const confirmCheckout = async () => {
-  isProcessing.value = true;
-  errorMessage.value = '';
-
+const confirmCheckout = async () => {
   try {
+    isProcessing.value = true;
+    
+    // Get current user info
     const user = JSON.parse(localStorage.getItem('user'));
-
-    // 直接提交订单
+    
+    // Prepare order data
     const submitOrderParam = {
-      userId: user.id,
+      userId: user.userId,
       totalPrice: props.totalAmount,
       cartInfoList: props.selectedItems.map(item => ({
         productId: item.productId,
-        quantity: item.quantity, 
-        price: item.price
-      })),
-      createUser: user.username,
-      updateUser: user.username
+        quantity: item.quantity,
+        price: item.price,
+        imgUrl: item.imageUrl,
+        productName: item.name,
+        isChecked: item.isSelected ? 1 : 0
+      }))
     };
 
-    // 创建订单
+    // Submit order
     const orderId = await submitOrder(submitOrderParam);
 
-    // 更新支付状态 
-    await paySuccess(orderId);
+    if (!orderId) {
+      throw new Error('Failed to create order');
+    }
 
-    // 清理购物车
+    // Remove items from cart first
     await store.dispatch('cart/removeSelectedItems');
 
+    // Show success message
     store.dispatch('notification/show', {
-      type: 'success', 
-      message: 'Order placed successfully!'
+      type: 'success',
+      message: 'Order created successfully! Redirecting to payment...'
     });
 
-    router.push(`/api/orders/${orderId}`);
+    // Initiate payment process
+    await payOrder(orderId);
+
+    // Close checkout modal
+    emit('close');
+
+    // Navigate to orders page
+    // Note: User will complete payment in new window and be redirected by Alipay
+    // router.push('/api/orders');
+
   } catch (error) {
-    errorMessage.value = error.message || CartErrorMessages.CHECKOUT_FAILED;
+    showMessage(error.message || 'Failed to process order', 'error');
   } finally {
     isProcessing.value = false;
-    showConfirmation.value = false;
   }
 };
 

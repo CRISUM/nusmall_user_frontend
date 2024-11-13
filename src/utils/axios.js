@@ -22,7 +22,7 @@ const createServiceInstance = (baseURL) => {
     config => {
       const token = localStorage.getItem(ENV.TOKEN_KEY);
       if (token) {
-        config.headers['Authorization'] = `${ENV.TOKEN_PREFIX} ${token}`;
+        // config.headers['Authorization'] = `${ENV.TOKEN_PREFIX} ${token}`;
         config.headers['authToken'] = token;
       }
       return config;

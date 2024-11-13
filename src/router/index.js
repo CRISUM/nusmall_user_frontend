@@ -197,6 +197,33 @@ const routes = [
     }
   },
   {
+    path: '/payment/success',
+    name: 'PaymentSuccess',
+    component: () => import('@/views/PaymentSuccess.vue'),
+    meta: { 
+      requiresAuth: true,
+      roles: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN]
+    }
+  },
+  {
+    path: '/api/payment/pay',
+    name: 'PaymentResult',
+    component: () => import('@/views/PaymentResult.vue'),
+    meta: { 
+      requiresAuth: true,
+      roles: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN]
+    }
+  },
+  {
+    path: '/payment/result',
+    name: 'PaymentResult',
+    component: () => import('@/views/PaymentResult.vue'),
+    meta: { 
+      requiresAuth: true,
+      roles: [UserRoles.CUSTOMER, UserRoles.SELLER, UserRoles.ADMIN]
+    }
+  },
+  {
     path: '/403',
     name: 'Forbidden',
     component: () => import('@/views/Forbidden.vue'),

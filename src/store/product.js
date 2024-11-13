@@ -1,4 +1,6 @@
 // src/store/product.js
+import { getAllProducts } from '@/service/product'; 
+
 export default {
     namespaced: true,
     state: {
@@ -33,18 +35,27 @@ export default {
       }
     },
     actions: {
-      async fetchProducts({ commit }, { role, token } = {}) {
-        commit('SET_LOADING', true)
+      async fetchProducts({ commit }) {
         try {
-          const products = role === 'SELLER' 
-            ? await getProductsByMerchant(token)
-            : await getAllProducts()
-          commit('SET_PRODUCTS', products)
+          commit('SET_LOADING', true);
+          const response = await getAllProducts();
+          if (response.success && response.data?.records) {
+            commit('SET_PRODUCTS', response.data.records);
+          }
         } catch (error) {
-          commit('SET_ERROR', error.message)
+          console.error('Failed to fetch products:', error);
+          commit('SET_ERROR', error.message);
         } finally {
-          commit('SET_LOADING', false)
+          commit('SET_LOADING', false);
         }
+      },
+  
+      setCurrentProduct({ commit, state }, productId) {
+        const product = state.products.find(p => p.productId === productId);
+        if (product) {
+          commit('SET_CURRENT_PRODUCT', product);
+        }
+        return product;
       },
       setSearchQuery({ commit }, query) {
         commit('SET_SEARCH_QUERY', query)
@@ -54,6 +65,9 @@ export default {
       }
     },
     getters: {
+      getProductById: (state) => (productId) => {
+        return state.products.find(p => p.productId === parseInt(productId));
+      },
       filteredProducts: (state) => {
         let filtered = [...state.products]
         

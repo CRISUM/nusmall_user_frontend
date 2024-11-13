@@ -46,6 +46,17 @@ import { addToCart as addToCartService } from '@/service/cart';
         state.hasChanges = true;
       }
     },
+    UPDATE_ITEM_SELECTED(state, { cartItemId, isSelected }) {
+      const item = state.cartItems.find(item => item.cartItemId === cartItemId);
+      if (item) {
+        item.isSelected = isSelected;
+      }
+    },
+  
+    SET_CART_ITEMS(state, items) {
+      state.cartItems = items;
+      state.hasChanges = true;
+    },
     ADD_CART_ITEM(state, item) {
       const existingItem = state.cartItems.find(i => i.productId === item.productId);
       if (existingItem) {
@@ -232,10 +243,30 @@ import { addToCart as addToCartService } from '@/service/cart';
     async removeSelectedItems({ commit, state }) {
       commit('SET_LOADING', true);
       try {
-        await removeSelectedItems(state.cart.cartId);
-        const cart = await getCart();
-        commit('SET_CART_ITEMS', cart.cartItems);
+        // Call API to remove selected items
+        await removeSelectedItems();
+        
+        // Update local state
+        const remainingItems = state.cartItems.filter(item => !item.isSelected);
+        commit('SET_CART_ITEMS', remainingItems);
         commit('SET_SELECTED_ITEMS', []);
+        
+      } catch (error) {
+        commit('SET_ERROR', error.message);
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+    async updateSelected({ commit }, { cartItemId, isSelected }) {
+      commit('SET_LOADING', true);
+      try {
+        // Call API to update item selection
+        await updateItemSelected(cartItemId, isSelected);
+        
+        // Update local state
+        commit('UPDATE_ITEM_SELECTED', { cartItemId, isSelected });
+        
       } catch (error) {
         commit('SET_ERROR', error.message);
         throw error;
