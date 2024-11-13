@@ -4,6 +4,12 @@ import * as mockService from '@/utils/mockService';
 import { isUseMock } from '@/utils/axios';
 import { userService } from '../utils/axios';
 
+const ROLE_IDS = {
+  'CUSTOMER': 2,
+  'SELLER': 3,
+  'ADMIN': 1
+};
+
 console.log('Is using mock data:', isUseMock());
 
 if (isUseMock()) {
@@ -22,8 +28,45 @@ const apiService = {
   },
 
   register: async (userData) => {
-    const response = await userService.post('/api/user', userData);
-    return response;
+    try {
+      // 准备注册数据
+      const registerData = {
+        username: userData.username,
+        password: userData.password,
+        email: userData.email,
+        createDatetime: new Date().toISOString(),
+        updateDatetime: new Date().toISOString(),
+        createUser: 'system',
+        updateUser: 'system'
+      };
+  
+      // 使用导入的 axios 实例
+      const response = await axios({
+        method: 'post',
+        url: 'http://nusmall.com:8084/api/user',
+        data: registerData,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      // 处理响应
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          data: response.data.data,
+          message: 'Registration successful'
+        };
+      } else {
+        throw new Error(response.data.message || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error details:', error.response || error);
+      if (error.response && error.response.data) {
+        throw new Error(error.response.data.message || 'Registration failed');
+      }
+      throw error;
+    }
   },
 
   getAllUsers: async () => {

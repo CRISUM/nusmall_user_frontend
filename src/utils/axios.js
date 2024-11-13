@@ -20,17 +20,30 @@ const createServiceInstance = (baseURL) => {
   // Add request interceptor
   instance.interceptors.request.use(
     config => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        // config.headers['Authorization'] = `${ENV.TOKEN_PREFIX} ${token}`;
-        config.headers['authToken'] = token;
+      // 不需要 token 的接口列表
+      const noTokenRequired = [
+        '/api/user',  // 注册
+        '/login',     // 登录
+      ];
+  
+      // 判断当前请求是否需要 token
+      const needsToken = !noTokenRequired.some(path => 
+        config.url.includes(path) && config.method === 'post'
+      );
+  
+      if (needsToken) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          config.headers['authToken'] = token;
+        }
       }
+  
       console.log('Request config:', {
         url: config.url,
         method: config.method,
-        headers: config.headers,
-        data: config.data
+        headers: config.headers
       });
+  
       return config;
     },
     error => Promise.reject(error)

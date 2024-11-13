@@ -133,7 +133,7 @@
           </h3>
           <p class="description">{{ product.description }}</p>
           <p class="category">
-            Category: 
+            
             <span @click="filterByCategory(product.categoryId)">
               {{ product.categoryName }}
             </span>
