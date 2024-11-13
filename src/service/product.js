@@ -15,8 +15,8 @@ const apiService = {
     try {
       const response = await productService.get('/product/page/consumer', {
         params: {
-          page: queryParams.page || 1,
-          pageSize: queryParams.pageSize || 10,
+          page: queryParams.page || 0,
+          pageSize: queryParams.pageSize || 30,
           name: queryParams.name,
           description: queryParams.description,
           categoryId: queryParams.categoryId
@@ -48,7 +48,7 @@ const apiService = {
       // Merchant pagination params - includes sellerId from token
       const params = {
         page: queryParams.page || 1,
-        pageSize: queryParams.pageSize || 10,
+        pageSize: queryParams.pageSize || 30,
         name: queryParams.name,      // 支持模糊查询
         categoryId: queryParams.categoryId,  // 精确匹配
       };

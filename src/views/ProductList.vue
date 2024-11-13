@@ -6,7 +6,7 @@
     v-if="showProductForm"
     :product="selectedProduct"
     @close="showProductForm = false"
-    @saved="loadProducts"
+    @saved="handleProductSaved"
   />
 
   <div v-if="showCartModal" class="modal">
@@ -263,7 +263,7 @@ const searchQuery = ref('');  // 用于搜索框的输入
 const sortBy = ref('newest');  // 默认排序方式
 const error = ref(null);  // 用于错误状态的处理
 const currentPage = ref(1);  // 当前页面，默认为第一页
-const pageSize = ref(10);  // 每页显示的产品数量
+const pageSize = ref(30);  // 每页显示的产品数量
 const showAddModal = ref(false);
 const productForm = ref({
   name: '',
@@ -517,11 +517,13 @@ const loadProducts = async () => {
 
     // 构造查询参数
     const queryParams = {
-      page: currentPage.value,
+      page: currentPage.value - 1,
       pageSize: pageSize.value,
       name: searchQuery.value || undefined,
       categoryId: selectedCategory.value || undefined
     };
+
+    console.log('[][][]Loading products with params:', queryParams); // 添加日志
 
     const response = await getAllProducts(queryParams);
     
@@ -530,9 +532,17 @@ const loadProducts = async () => {
       products.value = response.data.records.map(product => ({
         ...product,
         productId: product.productId || product.id,
-        imageUrl: product.imageUrl || product.productImages?.[0]?.imageUrl || '/api/placeholder/400/320'
+        // 确保所有必要的字段都有默认值
+        name: product.name || 'Unnamed Product',
+        description: product.description || '',
+        price: Number(product.price) || 0,
+        imageUrl: product.imageUrl || product.productImages?.[0]?.imageUrl || '/api/placeholder/400/320',
+        availableStock: Number(product.availableStock) || 0
       }));
       total.value = response.data.total;
+
+      // 添加处理后的数据日志
+      console.log('Processed products:', products.value);
     } else {
       throw new Error('Invalid response format');
     }
@@ -557,6 +567,21 @@ const loadCategories = async () => {
     }
   } catch (err) {
     console.error('Failed to load categories:', err);
+  }
+};
+
+const handleProductSaved = async () => {
+  try {
+    // 重置到第一页
+    currentPage.value = 1;
+    // 清空搜索条件
+    searchQuery.value = '';
+    selectedCategory.value = '';
+    // 重新加载产品列表
+    await loadProducts();
+  } catch (error) {
+    console.error('Failed to refresh products:', error);
+    showMessage('Failed to refresh product list', 'error');
   }
 };
 

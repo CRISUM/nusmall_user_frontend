@@ -91,7 +91,7 @@ export const pageQuery = async (queryParams = {}) => {
     // 确保所有必需的参数都有默认值
     const params = {
       page: queryParams.page || 0,
-      pageSize: queryParams.pageSize || 10,
+      pageSize: queryParams.pageSize || 30,
       categoryId: queryParams.categoryId || 0,
       categoryName: queryParams.categoryName || ''
     };

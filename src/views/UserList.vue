@@ -41,7 +41,7 @@ const router = useRouter()
 const users = ref([])
 const loading = ref(false);
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(30);
 const total = ref(0);
 const searchQuery = ref('');
 
