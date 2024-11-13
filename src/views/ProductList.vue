@@ -53,7 +53,7 @@
       <h2>{{ pageTitle }}</h2>
       <!-- Add Product Button (Seller/Admin only) -->
       <div v-if="userRole !== 'CUSTOMER'" class="header-actions">
-        <button class="primary-btn" @click="showAddProduct = true">
+        <button class="primary-btn" @click="addNewProduct">
           <i class="plus-icon"></i> Add New Product
         </button>
       </div>

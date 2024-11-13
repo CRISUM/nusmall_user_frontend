@@ -45,15 +45,16 @@
                     v-if="!isAddingCategory"
                     required
                     >
-                    <option value="">Select category</option>
-                    <option value="new">+ Add New Category</option>
-                    <option 
-                        v-for="category in categories" 
-                        :key="category.categoryId"
-                        :value="category.categoryId"
-                    >
-                        {{ category.categoryName }}
-                    </option>
+                        <option value="">Select category</option>
+                        <!-- 使用特殊值标识添加新分类的选项 -->
+                        <option value="new">+ Add New Category</option>
+                        <option 
+                            v-for="category in categories" 
+                            :key="category.categoryId"
+                            :value="category.categoryId"
+                        >
+                            {{ category.categoryName }}
+                        </option>
                     </select>
                     
                     <!-- 新增分类的输入框 -->
@@ -62,19 +63,21 @@
                         v-model="newCategoryName"
                         type="text"
                         placeholder="Enter new category name"
+                        @keyup.enter="saveNewCategory"
                     >
                     <div class="category-actions">
                         <button 
-                        type="button" 
-                        class="secondary-btn"
+                        type="button"
+                        class="cancel-btn"
                         @click="cancelAddCategory"
                         >
                         Cancel
                         </button>
                         <button 
-                        type="button" 
-                        class="primary-btn"
+                        type="button"
+                        class="save-btn"
                         @click="saveNewCategory"
+                        :disabled="!newCategoryName.trim()"
                         >
                         Save
                         </button>
@@ -157,30 +160,49 @@
   const newCategoryName = ref('');
 
   // 监听 categoryId 变化
-watch(() => formData.value.categoryId, (newValue) => {
+  watch(() => formData.value.categoryId, (newValue) => {
   if (newValue === 'new') {
-    isAddingCategory.value = true;
+    // 不要设置 categoryId 为 'new'，而是直接清空
     formData.value.categoryId = '';
+    isAddingCategory.value = true;
   }
 });
 
 // 新增处理方法
 const saveNewCategory = async () => {
   try {
-    // 调用后端接口创建新分类
-    const response = await saveCategory(localStorage.getItem('token'), {
+    if (!newCategoryName.value) {
+      throw new Error('Category name is required');
+    }
+
+    const token = localStorage.getItem('token');
+    // 先创建新分类
+    const response = await saveCategory(token, {
       categoryName: newCategoryName.value
     });
-    
-    if (response.success && response.data) {
+
+    if (response.success) {
       showMessage('Category created successfully', 'success');
-      // 刷新分类列表
+      
+      // 重新加载分类列表
       await loadCategories();
-      // 设置新创建的分类为当前选中
-      formData.value.categoryId = response.data.categoryId;
+      
+      // 找到新创建的分类并设置为当前选中的分类
+      const newCategory = categories.value.find(
+        c => c.categoryName === newCategoryName.value
+      );
+      if (newCategory) {
+        formData.value.categoryId = newCategory.categoryId;
+      }
+      
+      // 重置状态
       isAddingCategory.value = false;
+      newCategoryName.value = '';
+    } else {
+      throw new Error(response.message || 'Failed to create category');
     }
   } catch (error) {
+    console.error('Failed to create category:', error);
     showMessage(error.message || 'Failed to create category', 'error');
   }
 };
@@ -196,7 +218,7 @@ const cancelAddCategory = () => {
     name: '',
     description: '',
     price: 0,
-    categoryId: '',
+    categoryId: 1,
     availableStock: 0,
     imageUrl: '/api/placeholder/400/320',
     // These will be set before submission
