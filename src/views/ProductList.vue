@@ -1,6 +1,14 @@
 // src/views/ProductList.vue
 <!-- src/views/ProductList.vue -->
 <template>
+
+  <ProductForm
+    v-if="showProductForm"
+    :product="selectedProduct"
+    @close="showProductForm = false"
+    @saved="loadProducts"
+  />
+
   <div v-if="showCartModal" class="modal">
     <div class="modal-content">
       <h3>Add to Cart</h3>
@@ -93,7 +101,7 @@
     <div v-else-if="products.length === 0" class="empty-state">
       <p>No products found</p>
       <div v-if="userRole !== 'CUSTOMER'" class="empty-actions">
-        <button @click="showAddProduct = true" class="primary-btn">
+        <button @click="addNewProduct" class="primary-btn">
           Add Your First Product
         </button>
       </div>
@@ -162,22 +170,12 @@
               </button>
               <button 
                 class="delete-btn"
-                @click="confirmDelete(product)"
+                @click="deleteProduct(product)"
                 title="Delete product"
                 style="background-color: #ff4d4f; color: white;"
               >
                 Delete
               </button>
-            </div>
-
-            <div v-if="['SELLER', 'ADMIN'].includes(userRole)" class="stock-management">
-              <label>Stock:</label>
-              <input 
-                type="number" 
-                v-model.number="product.availableStock"
-                @change="updateStock(product)"
-                min="0"
-              >
             </div>
           </div>
         </div>
@@ -212,7 +210,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { UserRoles } from '@/constants/authTypes'  
+import ProductForm from '@/components/product/ProductForm.vue';
 import { useAuth } from '@/composables/useAuth'
 import { 
   getAllProducts,
@@ -254,7 +252,8 @@ const currentInventory = ref(0)
 const newStockLevel = ref(0)
 const productToDelete = ref(null)
 const showCartModal = ref(false)
-const selectedProduct = ref(null)
+const showProductForm = ref(false);
+const selectedProduct = ref(null);
 const quantity = ref(1)
 const categories = ref([]);
 const selectedCategory = ref('');
@@ -289,7 +288,8 @@ const productForm = ref({
 const showAddProductModal = ref(false);
 
 const addNewProduct = () => {
-  showAddProductModal.value = true;
+  selectedProduct.value = null;
+  showProductForm.value = true;
 };
 
 
@@ -412,55 +412,21 @@ const formatPrice = (price) => {
   return Number(price).toFixed(2);
 };
 
-const editProduct = async (product) => {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    // 修改：添加所需的字段
-    const updatedProduct = {
-      productId: Number(product.productId), // 确保是数字
-      name: product.name,
-      description: product.description,
-      price: Number(product.price),
-      categoryId: Number(product.categoryId),
-      sellerId: Number(product.sellerId),
-      availableStock: Number(product.availableStock) || 0,
-      imageUrls: Array.isArray(product.imageUrls) ? product.imageUrls : [], // 确保是数组
-      updateUser: JSON.parse(localStorage.getItem('user'))?.username || 'system',
-      updateDatetime: new Date().toISOString()
-    };
-
-        // 如果product中有productImages，转换为imageUrls
-    if (product.productImages && Array.isArray(product.productImages)) {
-      updatedProduct.imageUrls = product.productImages.map(img => img.imageUrl);
-    }
-
-    if (isNaN(updatedProduct.productId)) {
-      throw new Error('Invalid product ID');
-    }
-    
-    await updateProduct(token, updatedProduct);
-    await loadProducts();
-    showMessage('Product updated successfully', 'success');
-  } catch (error) {
-    console.error('Failed to update product:', error);
-    showMessage(error.message || 'Failed to update product', 'error');
-  }
+const editProduct = (product) => {
+  selectedProduct.value = product;
+  showProductForm.value = true;
 };
 
 const deleteProduct = async (product) => {
   try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
+    if (!confirm('Are you sure you want to delete this product?')) {
+      return;
     }
 
+    const token = localStorage.getItem('token');
     await deleteProductApi(token, product.productId);
-    await loadProducts();
     showMessage('Product deleted successfully', 'success');
+    await loadProducts();
   } catch (error) {
     console.error('Failed to delete product:', error);
     showMessage(error.message || 'Failed to delete product', 'error');
@@ -1119,19 +1085,6 @@ onMounted(async () => {
 
 .edit-btn:hover, .delete-btn:hover {
   opacity: 0.8;
-}
-
-.stock-management {
-  margin-top: 10px;
-  padding: 10px;
-  background: #f5f5f5;
-  border-radius: 4px;
-}
-
-.stock-management input {
-  width: 80px;
-  padding: 4px;
-  margin-left: 8px;
 }
 
 }
