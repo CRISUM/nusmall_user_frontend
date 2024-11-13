@@ -412,11 +412,60 @@ const formatPrice = (price) => {
   return Number(price).toFixed(2);
 };
 
-const editProduct = (product) => {
-  editingProduct.value = product
-  productForm.value = { ...product }
-  showAddProduct.value = true
-}
+const editProduct = async (product) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    // 修改：添加所需的字段
+    const updatedProduct = {
+      productId: Number(product.productId), // 确保是数字
+      name: product.name,
+      description: product.description,
+      price: Number(product.price),
+      categoryId: Number(product.categoryId),
+      sellerId: Number(product.sellerId),
+      availableStock: Number(product.availableStock) || 0,
+      imageUrls: Array.isArray(product.imageUrls) ? product.imageUrls : [], // 确保是数组
+      updateUser: JSON.parse(localStorage.getItem('user'))?.username || 'system',
+      updateDatetime: new Date().toISOString()
+    };
+
+        // 如果product中有productImages，转换为imageUrls
+    if (product.productImages && Array.isArray(product.productImages)) {
+      updatedProduct.imageUrls = product.productImages.map(img => img.imageUrl);
+    }
+
+    if (isNaN(updatedProduct.productId)) {
+      throw new Error('Invalid product ID');
+    }
+    
+    await updateProduct(token, updatedProduct);
+    await loadProducts();
+    showMessage('Product updated successfully', 'success');
+  } catch (error) {
+    console.error('Failed to update product:', error);
+    showMessage(error.message || 'Failed to update product', 'error');
+  }
+};
+
+const deleteProduct = async (product) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    await deleteProductApi(token, product.productId);
+    await loadProducts();
+    showMessage('Product deleted successfully', 'success');
+  } catch (error) {
+    console.error('Failed to delete product:', error);
+    showMessage(error.message || 'Failed to delete product', 'error');
+  }
+};
 
 // 确保 closeModal 方法存在并正确实现
 const closeModal = () => {
@@ -479,23 +528,6 @@ const confirmDelete = (product) => {
   productToDelete.value = product
   showDeleteConfirm.value = true
 }
-
-const deleteProduct = async () => {
-  if (!productToDelete.value) return;
-  
-  try {
-    await deleteById(productToDelete.value.id);
-    await loadProducts();
-    showDeleteConfirm.value = false;
-    productToDelete.value = null;
-  } catch (error) {
-    if (error.message.includes('DeletionNotAllowedException')) {
-      alert('Cannot delete product as it is associated with orders');
-    } else {
-      alert('Failed to delete product: ' + error.message);
-    }
-  }
-};
 
 const handleImageUpload = async (file) => {
   try {

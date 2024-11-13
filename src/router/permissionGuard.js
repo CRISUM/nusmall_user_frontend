@@ -27,6 +27,12 @@ export const setupPermissionGuard = (router) => {
       userRole: user?.role
     });
 
+    if (to.meta.roles && to.meta.roles.includes('ADMIN')) {
+      if (user?.role === 'ADMIN') {
+        next();
+      }
+    }
+
     // 没有token或user信息
     if (!token || !user) {
       next('/api/login');

@@ -86,10 +86,29 @@ const apiService = {
    */
   updateProduct: async (authToken, productDTO) => {
     try {
-      const response = await productService.put('/product', productDTO, {
+      // 确保必要的字段存在
+      const payload = {
+        productId: Number(productDTO.productId),
+        name: productDTO.name,
+        description: productDTO.description,
+        price: Number(productDTO.price),
+        categoryId: Number(productDTO.categoryId),
+        sellerId: Number(productDTO.sellerId),
+        availableStock: Number(productDTO.availableStock) || 0,
+        imageUrls: Array.isArray(productDTO.imageUrls) ? productDTO.imageUrls : [],
+        updateDatetime: new Date().toISOString(),
+        updateUser: JSON.parse(localStorage.getItem('user'))?.username || 'system'
+      };
+
+            // 验证数据
+      if (!payload.productId || isNaN(payload.productId)) {
+        throw new Error('Invalid product ID');
+      }
+
+      const response = await productService.put('/product', payload, {
         headers: { authToken }
       });
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Failed to update product:', error);
       throw error;
@@ -116,14 +135,18 @@ const apiService = {
    * Upload product image
    * Backend endpoint: POST /product/image
    */
-  uploadImage: async (file) => {
+  uploadImage: async (authToken, file) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      
       const response = await productService.post('/product/image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 
+          authToken,
+          'Content-Type': 'multipart/form-data'
+        }
       });
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Failed to upload image:', error);
       throw error;
@@ -134,12 +157,13 @@ const apiService = {
    * Delete product image
    * Backend endpoint: DELETE /product/image?file={file}
    */
-  deleteImage: async (file) => {
+  deleteImage: async (authToken, imageUrl) => {
     try {
       const response = await productService.delete('/product/image', {
-        params: { file }
+        headers: { authToken },
+        params: { file: imageUrl }
       });
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Failed to delete image:', error);
       throw error;

@@ -1,3 +1,4 @@
+
 <template>
   <div class="user-list">
     <h1>User List</h1>
@@ -12,14 +13,14 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="user in users" :key="user.id">
-          <td>{{ user.id }}</td>
-          <td>{{ user.username }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.role }}</td>
+        <tr v-for="userItem in users" :key="userItem.userId">
+          <td>{{ userItem.userId }}</td>
+          <td>{{ userItem.username }}</td>
+          <td>{{ userItem.email }}</td>
+          <td>{{ userItem.role }}</td>
           <td>
-            <button @click="editUser(user.id)">Edit</button>
-            <button @click="deleteUser(user.id)">Delete</button>
+            <button @click="editUser(userItem.userId)">Edit</button>
+            <button @click="deleteUser(userItem.userId)">Delete</button>
           </td>
         </tr>
       </tbody>
@@ -31,7 +32,7 @@
 <script setup>
 import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
-import { getAllUsers, deleteUser as deleteUserApi } from '@/service/user'
+import { getAllUsers, deleteUser as deleteUserApi, getUserRole } from '@/service/user'
 import { permissionService } from '@/service/permission'
 import { UserRoles } from '@/constants/authTypes';
 import { showMessage } from '@/utils/message';
@@ -47,25 +48,37 @@ const searchQuery = ref('');
 const loadUsers = async () => {
   try {
     loading.value = true;
-    const user = JSON.parse(localStorage.getItem('user'));
-    
-    // 打印当前用户信息，用于调试
-    console.log('Current user:', user);
-    
-    if (user?.role !== 'ADMIN') {
-      router.push('/403');
-      return;
-    }
-
     const response = await getAllUsers();
+    
     if (response?.success && Array.isArray(response.data)) {
-      users.value = response.data;
-    } else {
-      throw new Error('Invalid response format');
+      // 获取每个用户的角色信息
+      const usersWithRoles = await Promise.all(response.data.map(async (user) => {
+        try {
+          const roleResponse = await getUserRole(user.userId);
+          console.log('User Role Response:', {
+            userId: user.userId,
+            username: user.username,
+            roleResponse
+          });
+          return {
+            ...user,
+            role: roleResponse?.name || 'Unknown'
+          };
+        } catch (error) {
+          console.error(`Failed to get role for user ${user.userId}:`, error);
+          return {
+            ...user,
+            role: 'Unknown'
+          };
+        }
+      }));
+      
+      console.log('Users with roles:', usersWithRoles);
+      users.value = usersWithRoles;
     }
   } catch (error) {
     console.error('Failed to load users:', error);
-    showMessage(error.message || 'Failed to load users', 'error');
+    showMessage('Failed to load users', 'error');
   } finally {
     loading.value = false;
   }
@@ -73,43 +86,42 @@ const loadUsers = async () => {
 
 const editUser = async (userId) => {
   try {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user?.role !== 'ADMIN') {
-      showMessage('Permission denied', 'error');
+    if (!userId) {
+      showMessage('Invalid user ID', 'error');
       return;
     }
 
-    router.push(`/api/users/${userId}/edit`);
+    router.push(`/api/users/${userId}`);
   } catch (error) {
     console.error('Edit user failed:', error);
-    showMessage(error.message || 'Failed to edit user', 'error');
+    showMessage('Failed to edit user', 'error');
   }
 };
 
 const deleteUser = async (userId) => {
+  if (!userId) {
+    showMessage('Invalid user ID', 'error');
+    return;
+  }
+
   if (!confirm('Are you sure you want to delete this user?')) {
     return;
   }
 
   try {
-    const hasPermission = await permissionService.checkPermission('/api/users', 'DELETE');
-    if (!hasPermission) {
-      showMessage('Permission denied', 'error');
-      return;
-    }
-
     const response = await deleteUserApi(userId);
     if (response.success) {
       showMessage('User deleted successfully', 'success');
-      await loadUsers();
+      await loadUsers(); // 重新加载用户列表
     } else {
-      throw new Error(response.message);
+      throw new Error(response.message || 'Failed to delete user');
     }
   } catch (error) {
     console.error('Failed to delete user:', error);
     showMessage(error.message || 'Failed to delete user', 'error');
   }
 };
+
 
 const createNewUser = async () => {
   try {

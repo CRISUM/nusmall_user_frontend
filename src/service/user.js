@@ -32,17 +32,47 @@ const apiService = {
   },
 
   getUserById: async (id) => {
-    const response = await userService.get(`/api/user/${id}`);
-    return response;
+    try {
+      const response = await userService.get(`/api/user/${id}`);
+      
+      if (response.success && response.data) {
+        // 获取用户角色
+        try {
+          const roleResponse = await apiService.getUserRole(id);
+          if (roleResponse && roleResponse.name) {
+            response.data.role = roleResponse.name;
+          }
+        } catch (roleError) {
+          console.error('Failed to get user role:', roleError);
+        }
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Failed to get user:', error);
+      throw error;
+    }
   },
 
   createUser: async (userData) => {
     try {
-      const response = await userService.post('/api/user', userData, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      const response = await userService.post('/api/user', {
+        ...userData,
+        role: undefined  // 移除role字段，因为用户表不存储role
       });
+
+      if (response.success && response.data) {
+        // 创建用户后设置角色
+        try {
+          await apiService.createUserRole(
+            response.data.userId,
+            userData.role || 'CUSTOMER'
+          );
+        } catch (roleError) {
+          console.error('Failed to set user role:', roleError);
+        }
+      }
+
       return response;
     } catch (error) {
       console.error('Failed to create user:', error);
@@ -52,14 +82,23 @@ const apiService = {
 
   updateUser: async (userData) => {
     try {
-      // 从本地存储获取当前用户ID
-      const currentUser = JSON.parse(localStorage.getItem('user'));
-      if (!currentUser?.userId) {
-        throw new Error('User ID not found');
+      // 保存角色信息
+      const roleName = userData.role;
+      // 移除role字段
+      const { role, ...userDataWithoutRole } = userData;
+
+      // 更新用户基本信息
+      const response = await userService.put(`/api/user/${userData.userId}`, userDataWithoutRole);
+
+      if (response.success) {
+        // 更新用户角色
+        try {
+          await apiService.createUserRole(userData.userId, roleName);
+        } catch (roleError) {
+          console.error('Failed to update user role:', roleError);
+          throw new Error('User updated but role update failed');
+        }
       }
-      
-      // 使用实际的userId构建URL
-      const response = await userService.put(`/api/user/${currentUser.userId}`, userData);
       return response;
     } catch (error) {
       console.error('Failed to update user:', error);
@@ -67,33 +106,89 @@ const apiService = {
     }
   },
 
-  deleteUser: async (id) => {
-    const response = await userService.delete(`/api/user/${id}`);
-    return response;
-  },
-
-  /**
-   * Get current user info including role
-   * Backend endpoint: POST /getCurrentUserInfo
-   * @param {string} token - Auth token
-   * @returns {Promise<ApiResponseUser>} 
-   */
-  getCurrentUserInfo: async (token) => {
+  deleteUser: async (userId) => {
     try {
-      console.log('Sending getCurrentUserInfo request with token:', token);
-      const response = await userService.post('/getCurrentUserInfo', {}, {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authorization token is required');
+      }
+
+      const response = await userService.delete(`/api/user/${userId}`, {
         headers: {
           'authToken': token
         }
       });
+
+      return response;
+    } catch (error) {
+      console.error('Delete user failed:', error);
+      throw error;
+    }
+  },
+
+  getCurrentUserInfo: async (token) => {
+    try {
+      const response = await userService.post('/getCurrentUserInfo', null, {
+        headers: {
+          'authToken': token
+        }
+      });
+
       if (response.success && response.data) {
-        const roleResponse = await apiService.getUserRole(response.data.userId);
-        // 直接将角色名称赋值给用户的role属性
-        response.data.role = roleResponse ? roleResponse.name : null;
+        // 获取用户角色
+        try {
+          const roleResponse = await apiService.getUserRole(response.data.userId);
+          if (roleResponse && roleResponse.name) {
+            response.data.role = roleResponse.name;
+          }
+        } catch (roleError) {
+          console.error('Failed to get user role:', roleError);
+        }
       }
+
       return response;
     } catch (error) {
       console.error('Failed to get user info:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Create user role assignment
+   * POST /user-roles/create
+   * @param {number} userId 
+   * @param {number} roleId - 1: ADMIN, 2: CUSTOMER, 3: SELLER
+   */
+  createUserRole: async (userId, roleName) => {
+    try {
+      // 将角色名称转换为roleId
+      const roleMap = {
+        'ADMIN': 1,
+        'CUSTOMER': 2,
+        'SELLER': 3
+      };
+      
+      const roleId = roleMap[roleName];
+      if (!roleId) {
+        throw new Error('Invalid role name');
+      }
+
+      const response = await userService.post('/user-roles/create', null, {
+        params: {
+          userId,
+          roleId
+        },
+        headers: {
+          'authToken': localStorage.getItem('token')
+        }
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to create user role:', error);
       throw error;
     }
   },
@@ -106,11 +201,16 @@ const apiService = {
  */
   getUserRole: async (userId) => {
     try {
-      const response = await userService.get(`/user-roles/user/${userId}`);
+      const response = await userService.get(`/user-roles/user/${userId}`, {
+        headers: {
+          'authToken': localStorage.getItem('token')
+        }
+      });
+      console.log(`Role response for user ${userId}:`, response);  // 添加日志
       return response;
     } catch (error) {
-      console.error('Failed to get user role:', error);
-      throw error;
+      console.error(`Failed to get role for user ${userId}:`, error);
+      return null;
     }
   },
 

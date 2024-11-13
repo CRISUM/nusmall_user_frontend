@@ -2,45 +2,86 @@
   <div class="user-form">
     <h1>{{ isEditing ? 'Edit User' : 'Create User' }}</h1>
     <form @submit.prevent="onSubmit">
-      <div class="form-group">
-        <label>Username</label>
-        <input v-model="user.username" type="text" placeholder="Username" required>
+      <!-- 用户基本信息部分 -->
+      <div class="form-section">
+        <h2>Basic Information</h2>
+        <div class="form-group">
+          <label>Username</label>
+          <input 
+            v-model="formData.user.username" 
+            type="text" 
+            placeholder="Username"
+            required
+          >
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input 
+            v-model="formData.user.email" 
+            type="email" 
+            placeholder="Email"
+            required
+          >
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input 
+            v-model="formData.user.password" 
+            type="password" 
+            placeholder="Password"
+            :required="!isEditing"
+          >
+          <small v-if="isEditing">Leave blank to keep current password</small>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select 
+            v-model="formData.user.role"
+            required
+            :disabled="!isEditing && formData.user.role === 'CUSTOMER'"
+          >
+            <option value="">Select role</option>
+            <option v-for="role in availableRoles" 
+                    :key="role.value" 
+                    :value="role.value">
+              {{ role.label }}
+            </option>
+          </select>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input v-model="user.email" type="email" placeholder="Email" required>
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input v-model="user.password" type="password" 
-               placeholder="Password" 
-               :required="!isEditing">
-      </div>
-      <div class="form-group">
-        <label>Role</label>
-        <select v-model="user.role" required>
-          <option value="CUSTOMER">Customer</option>
-          <option value="SELLER">Seller</option>
-          <option value="ADMIN">Admin</option>
-        </select>
-      </div>
+
+      <!-- 地址信息部分 -->
       <div class="form-section">
         <h2>Address Information</h2>
         <div class="form-group">
           <label>Street</label>
-          <input v-model="formData.address.street" type="text" placeholder="Street" required>
+          <input 
+            v-model="formData.address.street" 
+            type="text" 
+            placeholder="Street (N.A. if not available)"
+          >
         </div>
         <div class="form-group">
           <label>City</label>
-          <input v-model="formData.address.city" type="text" placeholder="City" required>
+          <input 
+            v-model="formData.address.city" 
+            type="text" 
+            placeholder="City (N.A. if not available)"
+          >
         </div>
         <div class="form-group">
           <label>State</label>
-          <input v-model="formData.address.state" type="text" placeholder="State" required>
+          <input 
+            v-model="formData.address.state" 
+            type="text" 
+            placeholder="State (N.A. if not available)"
+          >
         </div>
       </div>
+
+      <!-- 表单操作按钮 -->
       <div class="form-actions">
-        <button type="button" class="secondary-btn" @click="goBack">
+        <button type="button" class="secondary-btn" @click="router.push('/api/users')">
           Cancel
         </button>
         <button type="submit" class="primary-btn">
@@ -50,7 +91,6 @@
     </form>
   </div>
 </template>
-
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -70,12 +110,20 @@ const user = ref({
 
 const isEditing = computed(() => route.name === 'EditUser')
 
-const formData = ref({
+const availableRoles = [
+  { value: 'CUSTOMER', label: 'Customer' },
+  { value: 'SELLER', label: 'Seller' },
+  { value: 'ADMIN', label: 'Admin' }
+];
+
+// 设置默认值
+const defaultFormData = {
   user: {
     userId: 0,
     username: '',
     email: '',
     password: '',
+    role: '',
     createDatetime: '',
     updateDatetime: '',
     createUser: '',
@@ -83,40 +131,64 @@ const formData = ref({
   },
   address: {
     addressId: 0,
-    street: '',
-    city: '',
-    state: '',
+    street: 'N.A.',
+    city: 'N.A.',
+    state: 'N.A.',
     createDatetime: '',
     updateDatetime: '',
     createUser: '',
     updateUser: ''
   }
-})
+};
+
+const roleOptions = [
+  { value: 'CUSTOMER', label: 'Customer' },
+  { value: 'SELLER', label: 'Seller' },
+  { value: 'ADMIN', label: 'Admin' }
+];
+
+// 使用默认值初始化表单数据
+const formData = ref({...defaultFormData});
 
 // Load user data if editing
 const loadUserData = async () => {
-  if (!isEditing.value) return
-  
+  if (!isEditing.value) {
+    // 新建用户时设置默认role为CUSTOMER
+    formData.value.user.role = 'CUSTOMER';
+    return;
+  }
+
   try {
-    const userId = parseInt(route.params.id)
-    const userData = await getUserById(userId)
-    // remove password field from user object
+    const userId = parseInt(route.params.id);
+    const userData = await getUserById(userId);
+    console.log('Loaded user data:', userData);
+
     if (userData && userData.data) {
-      // 只填充允许编辑的字段
+      console.log('Loaded user data:', userData.data);  
+
       formData.value = {
-        username: userData.data.username,
-        email: userData.data.email,
-        password: ''  // 不回填密码
-      }
-      if (userData.data.addresses?.length > 0) {
-        formData.value.address = userData.data.addresses[0]
-      }
+        user: {
+          ...defaultFormData.user,
+          ...userData.data,
+          role: userData.data.role || 'CUSTOMER',  // 确保role存在
+          password: ''
+        },
+        address: {
+          ...defaultFormData.address,
+          ...(userData.data.addresses?.[0] || {}),
+          // 保留已存在的地址值
+          street: userData.data.addresses?.[0]?.street || 'N.A.',
+          city: userData.data.addresses?.[0]?.city || 'N.A.',
+          state: userData.data.addresses?.[0]?.state || 'N.A.'
+        }
+      };
+      console.log('Form data after loading:', formData.value);
     }
   } catch (error) {
-    showMessage?.(`Failed to load user: ${error.message}`, 'error')
-    router.push('/api/users')
+    showMessage(`Failed to load user: ${error.message}`, 'error');
+    router.push('/api/users');
   }
-}
+};
 
 const goBack = () => {
   router.push('/api/users')
@@ -124,51 +196,54 @@ const goBack = () => {
 
 const onSubmit = async () => {
   try {
+
+    if (!formData.value.user.role) {
+      throw new Error('User role is required');
+    }
+
     const currentTime = new Date().toISOString();
-    
-    // 直接构造符合后端要求的user对象
+    const currentUser = JSON.parse(localStorage.getItem('user'))?.username || 'system';
+
+    // 准备用户数据
     const userData = {
-      userId: formData.value.user.userId,
-      username: formData.value.user.username,
-      email: formData.value.user.email,
-      password: formData.value.user.password,
-      createDatetime: currentTime,
+      ...formData.value.user,
       updateDatetime: currentTime,
-      createUser: formData.value.user.username || 'system',
-      updateUser: formData.value.user.username || 'system'
+      updateUser: currentUser
     };
 
-    // 地址信息将通过单独的API处理
+    // 准备地址数据，确保使用默认值
     const addressData = {
-      street: formData.value.address.street,
-      city: formData.value.address.city,  
-      state: formData.value.address.state,
+      ...defaultFormData.address, // 先应用默认值
+      ...formData.value.address, // 再覆盖用户输入的值
+      street: formData.value.address.street || 'N.A.',
+      city: formData.value.address.city || 'N.A.',
+      state: formData.value.address.state || 'N.A.',
       createDatetime: currentTime,
       updateDatetime: currentTime,
-      createUser: formData.value.user.username || 'system',
-      updateUser: formData.value.user.username || 'system'
+      createUser: currentUser,
+      updateUser: currentUser
     };
 
     if (isEditing.value) {
-      await updateUser(route.params.id, userData);
-      showMessage?.('User updated successfully', 'success');
+      await updateUser(userData);
+      showMessage('User updated successfully', 'success');
     } else {
       const response = await createUser(userData);
       if (response.success && response.data) {
-        // 如果用户创建成功，创建关联的地址
+        // 创建关联的地址
         addressData.userId = response.data.userId;
         try {
           await createAddress(addressData);
         } catch (addressError) {
           console.error('Failed to create address:', addressError);
-          // 但不影响用户创建的成功提示
+          // 不影响用户创建的成功提示
         }
       }
-      showMessage?.('User created successfully', 'success');
+      showMessage('User created successfully', 'success');
     }
     router.push('/api/users');
   } catch (error) {
-    showMessage?.(error.message || 'An error occurred', 'error');
+    showMessage(error.message || 'An error occurred', 'error');
   }
 };
 
@@ -246,5 +321,44 @@ onMounted(loadUserData)
   margin: 0 0 16px;
   font-size: 1.2em;
   color: #333;
+}
+
+
+.role-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
+  background-color: white;
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: #1baeae;
+}
+
+.role-select option {
+  padding: 8px;
+}
+
+.form-group small {
+  color: #666;
+  font-size: 0.8em;
+  margin-top: 4px;
+  display: block;
+}
+
+select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
+}
+
+select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
 }
 </style>

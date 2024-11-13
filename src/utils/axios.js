@@ -20,7 +20,7 @@ const createServiceInstance = (baseURL) => {
   // Add request interceptor
   instance.interceptors.request.use(
     config => {
-      const token = localStorage.getItem(ENV.TOKEN_KEY);
+      const token = localStorage.getItem('token');
       if (token) {
         // config.headers['Authorization'] = `${ENV.TOKEN_PREFIX} ${token}`;
         config.headers['authToken'] = token;
