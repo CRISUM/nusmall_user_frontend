@@ -244,6 +244,12 @@ router.beforeEach((to, from, next) => {
     meta: to.meta
   });
 
+  if (to.path === '/payment/result') {
+    // Allow the route to proceed regardless of auth status
+    next();
+    return;
+  }
+
   next();
 });
 

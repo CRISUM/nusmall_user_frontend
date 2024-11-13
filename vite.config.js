@@ -53,6 +53,10 @@ export default defineConfig({
       '/api/payment': {         
         target: 'http://nusmall.com:8085',
         changeOrigin: true
+      },
+      '/payment': {  // Add this new proxy rule
+        target: 'http://nusmall.com:8085',
+        changeOrigin: true
       }
     }
   }
