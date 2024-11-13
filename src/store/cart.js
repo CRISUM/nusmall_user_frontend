@@ -2,6 +2,7 @@
 import { getCart, updateItemQuantity, removeItemFromCart, clearCart, 
     updateItemSelected, getSelectedItems, removeSelectedItems } from '@/service/cart';
 import { addToCart as addToCartService } from '@/service/cart';
+import { getAllProducts } from '@/service/product'; 
   
   const state = {
     cart: {
@@ -26,15 +27,24 @@ import { addToCart as addToCartService } from '@/service/cart';
       };
     },
     SET_CART_ITEMS(state, items) {
-      // Ensure items is always an array
-      state.cartItems = Array.isArray(items) ? items.map(item => ({
-        ...item,
-        imageUrl: item.imageUrl
-      })) : [];
-      // Also update cart object
-      if (state.cart) {
-        state.cart.cartItems = state.cartItems;
-      }
+      // 确保items是数组
+      const cartItems = Array.isArray(items) ? items : [];
+      
+      // 为每个item设置完整的信息
+      state.cartItems = cartItems.map(item => {
+        const storedItem = state.cartItems.find(i => i.productId === item.productId);
+        return {
+          ...item,
+          cartItemId: item.cartItemId,
+          productId: item.productId,
+          name: item.name || storedItem?.name || 'Product',
+          productName: item.productName || item.name || storedItem?.name || 'Product',
+          imageUrl: item.imageUrl || storedItem?.imageUrl || '/api/placeholder/400/320',
+          price: Number(item.price) || 0,
+          quantity: Number(item.quantity) || 1,
+          isSelected: item.isSelected ?? false
+        };
+      });
     },
     SET_SELECTED_ITEMS(state, items) {
       state.selectedItems = Array.isArray(items) ? items : [];
@@ -54,22 +64,39 @@ import { addToCart as addToCartService } from '@/service/cart';
     },
   
     SET_CART_ITEMS(state, items) {
-      state.cartItems = items;
-      state.hasChanges = true;
+      // 确保每个item都有正确的属性
+      state.cartItems = Array.isArray(items) ? items.map(item => ({
+        ...item,
+        name: item.name || item.productName,
+        imageUrl: item.imageUrl || '/api/placeholder/400/320',
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 1
+      })) : [];
     },
     ADD_CART_ITEM(state, item) {
-      const existingItem = state.cartItems.find(i => i.productId === item.productId);
-      if (existingItem) {
-        existingItem.quantity += item.quantity;
+      const existingIndex = state.cartItems.findIndex(i => i.productId === item.productId);
+      
+      if (existingIndex !== -1) {
+        // Update existing item
+        state.cartItems[existingIndex] = {
+          ...state.cartItems[existingIndex],
+          quantity: state.cartItems[existingIndex].quantity + item.quantity,
+          name: item.name || state.cartItems[existingIndex].name,
+          imageUrl: item.imageUrl || state.cartItems[existingIndex].imageUrl,
+          price: Number(item.price) || state.cartItems[existingIndex].price
+        };
       } else {
+        // Add new item
         state.cartItems.push({
           ...item,
-          imageUrl: item.imageUrl 
+          cartItemId: Date.now(), // 临时ID
+          name: item.name || 'Product',
+          imageUrl: item.imageUrl || '/api/placeholder/400/320',
+          price: Number(item.price) || 0,
+          quantity: Number(item.quantity) || 1,
+          isSelected: item.isSelected ?? false
         });
       }
-      // Also update cart object
-      state.cart.cartItems = state.cartItems;
-      state.hasChanges = true;
     },
     UPDATE_ITEM_SELECTED(state, { cartItemId, isSelected }) {
       const item = state.cartItems.find(item => item.cartItemId === cartItemId);
@@ -94,19 +121,50 @@ import { addToCart as addToCartService } from '@/service/cart';
   };
   
   const actions = {
-    async initializeCart({ commit }) {
+    async initializeCart({ commit, dispatch }) {
       try {
-        const response = await getCart();
-        // 确保每个商品都有正确的属性
-        const items = response.map(item => ({
-          ...item,
-          name: item.name || item.productName, // 后端可能返回productName
-          price: Number(item.price),
-          quantity: Number(item.quantity),
-          imageUrl: item.imageUrl || '/api/placeholder/400/320',
-        }));
+        // 1. 获取购物车数据
+        const cartResponse = await getCart();
         
-        commit('SET_CART_ITEMS', items);
+        if (!Array.isArray(cartResponse)) {
+          throw new Error('Invalid cart data');
+        }
+  
+        // 2. 获取所有商品信息，使用现有的getAllProducts方法
+        let productsDetails = [];
+        try {
+          // 不传任何查询参数，获取所有商品
+          const productsResponse = await getAllProducts();
+          
+          if (productsResponse?.data?.records) {
+            productsDetails = productsResponse.data.records;
+          }
+        } catch (error) {
+          console.error('Failed to fetch product details:', error);
+        }
+  
+        // 3. 合并购物车数据和商品详情
+        const enrichedCartItems = cartResponse.map(cartItem => {
+          // 从所有商品中找到对应的商品详情
+          const productDetail = productsDetails.find(p => 
+            p.productId === cartItem.productId || p.id === cartItem.productId
+          );
+          
+          return {
+            ...cartItem,
+            name: productDetail?.name || cartItem.productName || 'Unknown Product',
+            productName: productDetail?.name || cartItem.productName || 'Unknown Product',
+            imageUrl: productDetail?.imageUrl || 
+                     productDetail?.productImages?.[0]?.imageUrl || 
+                     cartItem.imageUrl || 
+                     '/api/placeholder/400/320',
+            price: Number(cartItem.price) || 0,
+            quantity: Number(cartItem.quantity) || 1,
+          };
+        });
+  
+        // 4. 更新state
+        commit('SET_CART_ITEMS', enrichedCartItems);
       } catch (error) {
         console.error('Failed to initialize cart:', error);
         commit('SET_CART_ITEMS', []);
@@ -140,6 +198,8 @@ import { addToCart as addToCartService } from '@/service/cart';
       commit('SET_LOADING', true);
       try {
         // 确保调用正确的API endpoint
+        commit('ADD_CART_ITEM', cartItem);
+
         await addToCartService({
           productId: cartItem.productId,
           quantity: cartItem.quantity,
@@ -149,9 +209,6 @@ import { addToCart as addToCartService } from '@/service/cart';
         
         // 重新获取购物车数据
         await dispatch('initializeCart');
-        
-        // 同步更新本地状态
-        commit('ADD_CART_ITEM', cartItem);
       } catch (error) {
         console.error('Failed to add to cart:', error);
         commit('SET_ERROR', error.message);

@@ -47,19 +47,25 @@ const searchQuery = ref('');
 const loadUsers = async () => {
   try {
     loading.value = true;
-    const response = await getAllUsers();
+    const user = JSON.parse(localStorage.getItem('user'));
     
-    if (response && response.data) {
-      users.value = response.data.map(user => ({
-        ...user,
-        id: user.userId || user.id  // 确保id字段存在
-      }));
+    // 打印当前用户信息，用于调试
+    console.log('Current user:', user);
+    
+    if (user?.role !== 'ADMIN') {
+      router.push('/403');
+      return;
+    }
+
+    const response = await getAllUsers();
+    if (response?.success && Array.isArray(response.data)) {
+      users.value = response.data;
     } else {
-      throw new Error(response.message);
+      throw new Error('Invalid response format');
     }
   } catch (error) {
     console.error('Failed to load users:', error);
-    showMessage('Failed to load users: ' + error.message, 'error');
+    showMessage(error.message || 'Failed to load users', 'error');
   } finally {
     loading.value = false;
   }
@@ -67,15 +73,16 @@ const loadUsers = async () => {
 
 const editUser = async (userId) => {
   try {
-    const hasPermission = await permissionService.checkPermission('/api/users', 'PUT');
-    if (hasPermission) {
-      router.push(`/api/users/${userId}/edit`);
-    } else {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user?.role !== 'ADMIN') {
       showMessage('Permission denied', 'error');
+      return;
     }
+
+    router.push(`/api/users/${userId}/edit`);
   } catch (error) {
-    console.error('Permission check failed:', error);
-    showMessage(error.message || 'Permission check failed', 'error');
+    console.error('Edit user failed:', error);
+    showMessage(error.message || 'Failed to edit user', 'error');
   }
 };
 

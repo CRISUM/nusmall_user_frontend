@@ -25,6 +25,12 @@ const createServiceInstance = (baseURL) => {
         // config.headers['Authorization'] = `${ENV.TOKEN_PREFIX} ${token}`;
         config.headers['authToken'] = token;
       }
+      console.log('Request config:', {
+        url: config.url,
+        method: config.method,
+        headers: config.headers,
+        data: config.data
+      });
       return config;
     },
     error => Promise.reject(error)
@@ -34,7 +40,11 @@ const createServiceInstance = (baseURL) => {
   instance.interceptors.response.use(
     response => {
       // Log response for debugging
-      console.log(`API Response [${response.config.url}]:`, response.data);
+      console.log('Response:', {
+        url: response.config.url,
+        status: response.status,
+        data: response.data
+      });
       return response.data;
     },
     error => {
@@ -42,7 +52,11 @@ const createServiceInstance = (baseURL) => {
         store.dispatch('user/logout');
         router.push('/login');
       }
-      console.error('API Error:', error);
+      console.error('API Error:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        data: error.response?.data
+      });
       return Promise.reject(error);
     }
   );

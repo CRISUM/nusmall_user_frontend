@@ -159,20 +159,33 @@ const handleSubmit = async () => {
     isProcessing.value = true;
     validateForm();
 
+    // 获取当前用户信息
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+
+    // 修改：添加必要的字段，包括createUser
     const userData = {
       username: formData.value.username,
       email: formData.value.email,
       password: formData.value.newPassword || undefined,
-      currentPassword: formData.value.currentPassword || undefined,
-      updateDatetime: new Date().toISOString()
+      updateDatetime: new Date().toISOString(),
+      createDatetime: currentUser.createDatetime,  // 保持原有的创建时间
+      createUser: currentUser.createUser,         // 添加创建者信息
+      updateUser: currentUser.username,           // 更新者使用当前用户名
     };
 
-    const response = await updateUser(userData);
-    if (response.success) {
-      showMessage('Settings updated successfully', 'success');
-      resetForm();
+    await updateUser(userData);
+    showMessage('Settings updated successfully', 'success');
+    
+    // 修改：密码更新成功后，提示用户需要重新登录
+    if (formData.value.newPassword) {
+      showMessage('Password updated, please login again', 'success');
+      // 清除登录信息
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // 跳转到登录页
+      router.push('/api/login');
     } else {
-      throw new Error(response.message || 'Failed to update settings');
+      resetForm();
     }
   } catch (err) {
     showMessage(err.message, 'error');
@@ -181,8 +194,35 @@ const handleSubmit = async () => {
   }
 };
 
-onMounted(() => {
-  loadUserData();
+onMounted(async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await getCurrentUserInfo(token);
+    if (response.success && response.data) {
+      // 保存完整的用户信息到formData
+      formData.value = {
+        ...formData.value,
+        username: response.data.username,
+        email: response.data.email,
+        createUser: response.data.createUser,
+        createDatetime: response.data.createDatetime,
+      };
+    } else {
+      throw new Error(response.message || 'Failed to load user data');
+    }
+  } catch (err) {
+    error.value = err.message;
+    showMessage(err.message, 'error');
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 

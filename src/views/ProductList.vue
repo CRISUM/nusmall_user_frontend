@@ -151,21 +151,33 @@
             </div>
 
             <!-- Seller/Admin Actions -->
-            <div v-else class="management-actions">
+            <div v-if="['SELLER', 'ADMIN'].includes(userRole)" class="management-actions">
               <button 
                 class="edit-btn" 
                 @click="editProduct(product)"
                 title="Edit product"
+                style="background-color: #1baeae; color: white;"
               >
-                <i class="edit-icon"></i>
+                Edit
               </button>
               <button 
                 class="delete-btn"
                 @click="confirmDelete(product)"
                 title="Delete product"
+                style="background-color: #ff4d4f; color: white;"
               >
-                <i class="delete-icon"></i>
+                Delete
               </button>
+            </div>
+
+            <div v-if="['SELLER', 'ADMIN'].includes(userRole)" class="stock-management">
+              <label>Stock:</label>
+              <input 
+                type="number" 
+                v-model.number="product.availableStock"
+                @change="updateStock(product)"
+                min="0"
+              >
             </div>
           </div>
         </div>
@@ -274,12 +286,30 @@ const productForm = ref({
 //   updateUser: ''
 // });
 
+const showAddProductModal = ref(false);
+
+const addNewProduct = () => {
+  showAddProductModal.value = true;
+};
+
 
 // 在 script setup 中修改 handleAddToCart 方法
 const handleAddToCart = (product) => {
   selectedProduct.value = product;
   quantity.value = 1;
   showCartModal.value = true;
+};
+
+const handleSubmitProduct = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    await createProduct(token, productForm.value);
+    showMessage('Product created successfully', 'success');
+    showAddProductModal.value = false;
+    await loadProducts();
+  } catch (error) {
+    showMessage(error.message, 'error');
+  }
 };
 
 // 添加确认加入购物车的方法
@@ -291,7 +321,10 @@ const confirmAddToCart = async () => {
       productId: selectedProduct.value.productId,
       quantity: quantity.value,
       price: selectedProduct.value.price,
-      imageUrl: selectedProduct.value.imageUrl
+      name: selectedProduct.value.name,
+      productName: selectedProduct.value.name,
+      imageUrl: selectedProduct.value.imageUrl || selectedProduct.value.productImages?.[0]?.imageUrl || '/api/placeholder/400/320',
+      isSelected: true
     };
 
     // 直接调用添加到购物车的action，后端会处理库存检查
@@ -423,21 +456,16 @@ const manageInventory = async (product) => {
   }
 }
 
-const updateStockLevel = async () => {
+const updateStock = async (product) => {
   try {
-    if (newStockLevel.value < 0) {
-      throw new Error('Stock level cannot be negative')
-    }
-
-    const token = localStorage.getItem('token')
-    await updateInventory(token, editingProduct.value.id, newStockLevel.value)
-    await loadProducts()
-    closeInventoryModal()
+    const token = localStorage.getItem('token');
+    await updateInventory(token, product.productId, product.availableStock);
+    showMessage('Stock updated successfully', 'success');
   } catch (error) {
-    console.error('Failed to update inventory:', error)
-    alert('Failed to update inventory: ' + error.message)
+    console.error('Failed to update stock:', error);
+    showMessage(error.message, 'error');
   }
-}
+};
 
 const closeInventoryModal = () => {
   showInventoryModal.value = false
@@ -1041,6 +1069,37 @@ onMounted(async () => {
   background-color: #f6ffed;
   color: #52c41a;
   border: 1px solid #b7eb8f;
+}
+
+.management-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.edit-btn, .delete-btn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.edit-btn:hover, .delete-btn:hover {
+  opacity: 0.8;
+}
+
+.stock-management {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.stock-management input {
+  width: 80px;
+  padding: 4px;
+  margin-left: 8px;
 }
 
 }

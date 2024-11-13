@@ -9,34 +9,14 @@ import { cartService } from '../utils/axios';
  * Actual API implementations for cart operations
  */
 const cartApi = {
-  /**
-   * Get cart items
-   * Backend endpoint: GET /api/v1/cart/items
-   * @returns {Promise<Array<CartItem>>}
-   */
-  getCart: async () => {
-    try {
-      const response = await cartService.get('/api/v1/cart/items', {
-        headers: { 'authToken': localStorage.getItem('token') }
-      });
-      return response;
-    } catch (error) {
-      console.error('Failed to get cart:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Add item to cart
-   * Backend endpoint: POST /api/v1/cart/add-item
-   * @param {AddCartItemRequest} cartItem
-   */
+  // 修改添加到购物车的方法
   addToCart: async (cartItem) => {
     try {
       // 确保图片URL使用正确的格式
       const formattedCartItem = {
         ...cartItem,
         imageUrl: cartItem.imageUrl || '/api/placeholder/400/320',
+        productName: cartItem.name || cartItem.productName, // 添加商品名称
         quantity: Number(cartItem.quantity) || 1,
         price: Number(cartItem.price) || 0
       };
@@ -46,9 +26,36 @@ const cartApi = {
           'authToken': localStorage.getItem('token')
         }
       });
-      return response;
+      return {
+        ...response,
+        name: cartItem.name,
+        productName: cartItem.name,
+        imageUrl: cartItem.imageUrl,
+        isSelected: cartItem.isSelected
+      };
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      throw error;
+    }
+  },
+
+  // 修改获取购物车数据的方法
+  getCart: async () => {
+    try {
+      const response = await cartService.get('/api/v1/cart/items', {
+        headers: { 'authToken': localStorage.getItem('token') }
+      });
+      
+      // 处理返回的数据，确保字段映射正确
+      return response.map(item => ({
+        ...item,
+        name: item.productName || item.name, // 确保name字段存在
+        imageUrl: item.imageUrl || '/api/placeholder/400/320',
+        quantity: Number(item.quantity) || 1,
+        price: Number(item.price) || 0
+      }));
+    } catch (error) {
+      console.error('Failed to get cart:', error);
       throw error;
     }
   },

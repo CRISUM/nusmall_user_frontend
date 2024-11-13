@@ -50,9 +50,21 @@ const apiService = {
     }
   },
 
-  updateUser: async (id, userData) => {
-    const response = await userService.put(`/api/user/${id}`, userData);
-    return response;
+  updateUser: async (userData) => {
+    try {
+      // 从本地存储获取当前用户ID
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      if (!currentUser?.userId) {
+        throw new Error('User ID not found');
+      }
+      
+      // 使用实际的userId构建URL
+      const response = await userService.put(`/api/user/${currentUser.userId}`, userData);
+      return response;
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      throw error;
+    }
   },
 
   deleteUser: async (id) => {

@@ -9,12 +9,17 @@
       <li v-if="userRole === 'ADMIN'"><router-link to="/api/products">Product Management</router-link></li>
       
       <!-- Seller Only -->
-      <li v-if="userRole === 'SELLER'"><router-link to="/api/products">My Products</router-link></li>
-      
-      <!-- Seller and Admin -->
-      <li v-if="['SELLER', 'ADMIN'].includes(userRole)">
+      <li v-if="userRole === 'SELLER'">
+        <router-link to="/api/products">My Products</router-link>
+      </li>
+      <li v-if="userRole === 'SELLER'">
         <router-link to="/api/inventory">Inventory</router-link>
       </li>
+      
+      <!-- Seller and Admin
+      <li v-if="['SELLER', 'ADMIN'].includes(userRole)">
+        <router-link to="/api/inventory">Inventory</router-link>
+      </li> -->
       
       <!-- All Users -->
       <li><router-link to="/api/products">Shop</router-link></li>

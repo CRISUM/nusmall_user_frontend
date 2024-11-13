@@ -159,6 +159,7 @@ const handleAddToCart = async () => {
       quantity: quantity.value,
       price: product.value.price,
       name: product.value.name,
+      productName: product.value.name,
       imageUrl: product.value.imageUrl || '/api/placeholder/400/320',
       isSelected: true
     };

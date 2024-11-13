@@ -1,8 +1,8 @@
 // src/views/cart.vue
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ServiceFacade } from '@/service/facade';
 import { useAuth } from '@/composables/useAuth';
 import { InventoryStatus } from '@/constants/cartTypes';
@@ -11,9 +11,32 @@ import OrderConfirmationModal from '@/components/order/OrderConfirmationModal.vu
 
 // Composables and state management
 const store = useStore();
+const route = useRoute();
 const router = useRouter();
 const { user } = useAuth();
 const showConfirmation = ref(false);
+
+// 监听路由变化
+watch(
+  () => route.path,
+  () => {
+    if (route.path === '/api/cart') {
+      loadCartData();
+    }
+  }
+);
+
+const loadCartData = async () => {
+  try {
+    loading.value = true;
+    await store.dispatch('cart/initializeCart');
+  } catch (error) {
+    errorMessage.value = error.message;
+    console.error('Failed to load cart:', error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // Local state
 const loading = ref(false);
@@ -29,7 +52,13 @@ const showPaymentSuccess = ref(false);
 const cart = computed(() => store.state.cart.cart);
 
 const cartItems = computed(() => {
-  return store.state.cart.cartItems || [];
+  return store.state.cart.cartItems.map(item => ({
+    ...item,
+    name: item.name || item.productName || 'Unknown Product',
+    imageUrl: item.imageUrl || '/api/placeholder/400/320',
+    price: Number(item.price) || 0,
+    quantity: Number(item.quantity) || 1,
+  }));
 });
 
 const selectedItems = computed(() => {
@@ -349,16 +378,10 @@ const goToOrderPage = () => {
 };
 
 // Initialize cart
-onMounted(async () => {
-  try {
-    loading.value = true;
-    await store.dispatch('cart/initializeCart');
-  } catch (error) {
-    errorMessage.value = error.message;
-  } finally {
-    loading.value = false;
-  }
+onMounted(() => {
+  loadCartData();
 });
+
 </script>
 
 <template>
