@@ -37,54 +37,23 @@
               >
             </div>
   
-            <div class="form-group">
+            <!-- Remove category selection for admin -->
+            <div v-if="!isAdmin" class="form-group">
                 <label>Category</label>
-                <div class="category-input">
-                    <select 
-                    v-model="formData.categoryId"
-                    v-if="!isAddingCategory"
-                    required
+                <select 
+                  v-model="formData.categoryId"
+                  required
+                >
+                    <option value="">Select category</option>
+                    <option 
+                        v-for="category in categories" 
+                        :key="category.categoryId"
+                        :value="category.categoryId"
                     >
-                        <option value="">Select category</option>
-                        <!-- 使用特殊值标识添加新分类的选项 -->
-                        <option value="new">+ Add New Category</option>
-                        <option 
-                            v-for="category in categories" 
-                            :key="category.categoryId"
-                            :value="category.categoryId"
-                        >
-                            {{ category.categoryName }}
-                        </option>
-                    </select>
-                    
-                    <!-- 新增分类的输入框 -->
-                    <div v-else class="new-category-input">
-                    <input 
-                        v-model="newCategoryName"
-                        type="text"
-                        placeholder="Enter new category name"
-                        @keyup.enter="saveNewCategory"
-                    >
-                    <div class="category-actions">
-                        <button 
-                        type="button"
-                        class="cancel-btn"
-                        @click="cancelAddCategory"
-                        >
-                        Cancel
-                        </button>
-                        <button 
-                        type="button"
-                        class="save-btn"
-                        @click="saveNewCategory"
-                        :disabled="!newCategoryName.trim()"
-                        >
-                        Save
-                        </button>
-                    </div>
-                    </div>
-                </div>
-                </div>
+                        {{ category.categoryName }}
+                    </option>
+                </select>
+            </div>
   
             <div class="form-group">
               <label>Stock</label>
@@ -97,7 +66,7 @@
             </div>
           </div>
   
-          <!-- Image Upload - For future implementation -->
+          <!-- Image Upload Section -->
           <div class="form-section">
             <div class="form-group">
               <label>Image URL</label>
@@ -129,109 +98,56 @@
         </form>
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, computed, onMounted, watch } from 'vue';
-  import { pageQuery as getCategories } from '@/service/category';
-  import { 
-    createProduct,
-    updateProduct,
-  } from '@/service/product';
-  import { showMessage } from '@/utils/message';
-  
-  const props = defineProps({
-    product: {
-      type: Object,
-      default: () => null
-    },
-    show: {
-      type: Boolean,
-      default: false
-    }
-  });
-  
-  const emit = defineEmits(['close', 'saved']);
-  
-  // State
-  const categories = ref([]);
-  const isSubmitting = ref(false);
-  const isAddingCategory = ref(false);
-  const newCategoryName = ref('');
+</template>
 
-  // 监听 categoryId 变化
-  watch(() => formData.value.categoryId, (newValue) => {
-  if (newValue === 'new') {
-    // 不要设置 categoryId 为 'new'，而是直接清空
-    formData.value.categoryId = '';
-    isAddingCategory.value = true;
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue';
+import { pageQuery as getCategories } from '@/service/category';
+import { createProduct, updateProduct } from '@/service/product';
+import { useAuth } from '@/composables/useAuth';
+import { showMessage } from '@/utils/message';
+
+const props = defineProps({
+  product: {
+    type: Object,
+    default: () => null
+  },
+  show: {
+    type: Boolean,
+    default: false
   }
 });
 
-// 新增处理方法
-const saveNewCategory = async () => {
-  try {
-    if (!newCategoryName.value) {
-      throw new Error('Category name is required');
-    }
+const emit = defineEmits(['close', 'saved']);
 
-    const token = localStorage.getItem('token');
-    // 先创建新分类
-    const response = await saveCategory(token, {
-      categoryName: newCategoryName.value
-    });
+// Get auth info
+const { userRole } = useAuth();
+const isAdmin = computed(() => userRole.value === 'ADMIN');
 
-    if (response.success) {
-      showMessage('Category created successfully', 'success');
-      
-      // 重新加载分类列表
-      await loadCategories();
-      
-      // 找到新创建的分类并设置为当前选中的分类
-      const newCategory = categories.value.find(
-        c => c.categoryName === newCategoryName.value
-      );
-      if (newCategory) {
-        formData.value.categoryId = newCategory.categoryId;
-      }
-      
-      // 重置状态
-      isAddingCategory.value = false;
-      newCategoryName.value = '';
-    } else {
-      throw new Error(response.message || 'Failed to create category');
-    }
-  } catch (error) {
-    console.error('Failed to create category:', error);
-    showMessage(error.message || 'Failed to create category', 'error');
-  }
-};
+// State
+const categories = ref([]);
+const isSubmitting = ref(false);
 
-const cancelAddCategory = () => {
-  isAddingCategory.value = false;
-  newCategoryName.value = '';
-  formData.value.categoryId = '';
-};
-  
-  // Form data with default values
-  const formData = ref({
-    name: '',
-    description: '',
-    price: 0,
-    categoryId: 1,
-    availableStock: 0,
-    imageUrl: '/api/placeholder/400/320',
-    // These will be set before submission
-    sellerId: null,
-    createUser: '',
-    updateUser: ''
-  });
-  
-  // Computed
-  const isEditing = computed(() => !!props.product);
-  
-  // Methods
-  const loadCategories = async () => {
+// Form data with default values and admin category
+const formData = ref({
+  name: '',
+  description: '',
+  price: 0,
+  categoryId: isAdmin.value ? 21 : '', // Default category for admin
+  availableStock: 0,
+  imageUrl: '/api/placeholder/400/320',
+  sellerId: null,
+  createUser: '',
+  updateUser: ''
+});
+
+// Computed
+const isEditing = computed(() => !!props.product);
+
+// Methods
+const loadCategories = async () => {
+  // Only load categories if not admin
+  if (!isAdmin.value) {
     try {
       const response = await getCategories({
         page: 1,
@@ -245,92 +161,81 @@ const cancelAddCategory = () => {
       console.error('Failed to load categories:', error);
       showMessage('Failed to load categories', 'error');
     }
-  };
-  
-  const handleSubmit = async () => {
-    try {
-        isSubmitting.value = true;
+  }
+};
 
-          // 如果未选择分类，使用或创建 N.A. 分类
-        if (!formData.value.categoryId) {
-        let naCategory = categories.value.find(c => c.categoryName === 'N.A.');
-        if (!naCategory) {
-            const response = await saveCategory(localStorage.getItem('token'), {
-            categoryName: 'N.A.'
-            });
-            if (response.success && response.data) {
-            naCategory = response.data;
-            }
-        }
-        formData.value.categoryId = naCategory?.categoryId;
-        }
-      
-      // Get current user info
-      const user = JSON.parse(localStorage.getItem('user'));
-      const token = localStorage.getItem('token');
-      
-      // Prepare product data
-      const productData = {
-        ...formData.value,
-        sellerId: user.userId,
-        createUser: user.username,
-        updateUser: user.username,
-        productId: props.product?.productId,  // Only included for updates
-        createDatetime: new Date().toISOString(),
-        updateDatetime: new Date().toISOString()
-      };
-  
-      // Create or update product
-      if (isEditing.value) {
-        await updateProduct(token, productData);
-        showMessage('Product updated successfully', 'success');
-      } else {
-        await createProduct(token, productData);
-        showMessage('Product created successfully', 'success');
-      }
-      
-      emit('saved');
-      closeModal();
-    } catch (error) {
-      console.error('Failed to save product:', error);
-      showMessage(error.message || 'Failed to save product', 'error');
-    } finally {
-      isSubmitting.value = false;
+const handleSubmit = async () => {
+  try {
+    isSubmitting.value = true;
+    
+    // Get current user info
+    const user = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('token');
+    
+    // Prepare product data
+    const productData = {
+      ...formData.value,
+      categoryId: isAdmin.value ? 21 : formData.value.categoryId, // Ensure admin category
+      sellerId: user.userId,
+      createUser: user.username,
+      updateUser: user.username,
+      productId: props.product?.productId,
+      createDatetime: new Date().toISOString(),
+      updateDatetime: new Date().toISOString()
+    };
+
+    if (isEditing.value) {
+      await updateProduct(token, productData);
+      showMessage('Product updated successfully', 'success');
+    } else {
+      await createProduct(token, productData);
+      showMessage('Product created successfully', 'success');
     }
-  };
-  
-  const closeModal = () => {
-    emit('close');
-  };
-  
-  // Initialize form if editing
-  const initializeForm = () => {
-    if (props.product) {
-      formData.value = {
-        name: props.product.name || '',
-        description: props.product.description || '',
-        price: props.product.price || 0,
-        categoryId: props.product.categoryId || '',
-        availableStock: props.product.availableStock || 0,
-        imageUrl: props.product.imageUrl || '/api/placeholder/400/320'
-      };
-    }
-  };
-  
-  // Watch for product changes
-  watch(() => props.product, () => {
-    if (props.product) {
-      initializeForm();
-    }
-  });
-  
-  // Initialize
-  onMounted(async () => {
-    await loadCategories();
+    
+    emit('saved');
+    closeModal();
+  } catch (error) {
+    console.error('Failed to save product:', error);
+    showMessage(error.message || 'Failed to save product', 'error');
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const closeModal = () => {
+  emit('close');
+};
+
+// Initialize form if editing
+const initializeForm = () => {
+  if (props.product) {
+    formData.value = {
+      name: props.product.name || '',
+      description: props.product.description || '',
+      price: props.product.price || 0,
+      categoryId: isAdmin.value ? 21 : (props.product.categoryId || ''),
+      availableStock: props.product.availableStock || 0,
+      imageUrl: props.product.imageUrl || '/api/placeholder/400/320'
+    };
+  }
+};
+
+// Watch for product changes
+watch(() => props.product, () => {
+  if (props.product) {
     initializeForm();
-  });
-  </script>
-  
+  }
+});
+
+// Initialize
+onMounted(async () => {
+  if (!isAdmin.value) {
+    await loadCategories();
+  }
+  initializeForm();
+});
+</script>
+
   <style scoped>
   .modal {
     position: fixed;
