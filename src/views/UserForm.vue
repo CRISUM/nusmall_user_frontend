@@ -38,7 +38,6 @@
           <select 
             v-model="formData.user.role"
             required
-            :disabled="!isEditing && formData.user.role === 'CUSTOMER'"
           >
             <option value="">Select role</option>
             <option v-for="role in availableRoles" 
