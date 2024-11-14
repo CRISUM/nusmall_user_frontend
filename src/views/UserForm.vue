@@ -200,13 +200,23 @@ const onSubmit = async () => {
       throw new Error('User role is required');
     }
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authorization token found');
+    }
+
     const currentTime = new Date().toISOString();
     const currentUser = JSON.parse(localStorage.getItem('user'))?.username || 'system';
 
     // 准备用户数据
     const userData = {
-      ...formData.value.user,
+      username: formData.value.user.username,
+      email: formData.value.user.email,
+      password: formData.value.user.password,
+      role: formData.value.user.role,
+      createDatetime: currentTime,
       updateDatetime: currentTime,
+      createUser: currentUser,
       updateUser: currentUser
     };
 

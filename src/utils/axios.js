@@ -1,6 +1,8 @@
 // src/utils/axios.js
 import axios from 'axios';
 import { ENV, isUseMock} from './env';
+import router from '@/router';  // 添加这行
+import store from '@/store'; 
 
 /**
  * Create axios instance with specified base URL
@@ -52,7 +54,6 @@ const createServiceInstance = (baseURL) => {
   // Add response interceptor
   instance.interceptors.response.use(
     response => {
-      // Log response for debugging
       console.log('Response:', {
         url: response.config.url,
         status: response.status,
@@ -61,9 +62,11 @@ const createServiceInstance = (baseURL) => {
       return response.data;
     },
     error => {
+      // 401处理
       if (error.response?.status === 401) {
-        store.dispatch('user/logout');
-        router.push('/login');
+        // 使用导入的store
+        store.dispatch('user/clearUser');
+        router.push('/api/login');
       }
       console.error('API Error:', {
         url: error.config?.url,

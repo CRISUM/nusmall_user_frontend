@@ -99,11 +99,29 @@ const apiService = {
 
   createUser: async (userData) => {
     try {
-      const response = await userService.post('/api/user', {
-        ...userData,
-        role: undefined  // 移除role字段，因为用户表不存储role
+      // 确保有token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authorization token found');
+      }
+  
+      // 直接发送用户数据，不需要包装在user字段中
+      const registerData = {
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        createDatetime: new Date().toISOString(),
+        updateDatetime: new Date().toISOString(),
+        createUser: userData.createUser || 'system',
+        updateUser: userData.updateUser || 'system'
+      };
+  
+      const response = await userService.post('/api/user', registerData, {
+        headers: {
+          'authToken': token
+        }
       });
-
+  
       if (response.success && response.data) {
         // 创建用户后设置角色
         try {
@@ -115,7 +133,7 @@ const apiService = {
           console.error('Failed to set user role:', roleError);
         }
       }
-
+  
       return response;
     } catch (error) {
       console.error('Failed to create user:', error);
